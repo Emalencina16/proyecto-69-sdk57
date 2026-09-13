@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# bitácora interna de trabajo, no es parte del entregable
+RESEARCH.md

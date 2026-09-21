@@ -1,0 +1,32 @@
+{
+  "usuarios": [
+    {
+      "id": "usr-201",
+      "nombre": "Lucía Méndez",
+      "email": "lucia@mail.com",
+      "avatarUrl": null,
+      "creadoEn": "2026-09-02T18:20:00-03:00",
+      "contrasena": "123456",
+      "preferencias": {
+        "categoriasFavoritas": ["cat-museos", "cat-playas"],
+        "avisarProximidad": true,
+        "radioAvisoMetros": 250,
+        "tema": "sistema"
+      }
+    },
+    {
+      "id": "usr-202",
+      "nombre": "Valeria Sosa",
+      "email": "valeria@colon.tur.ar",
+      "avatarUrl": null,
+      "creadoEn": "2026-01-15T09:00:00-03:00",
+      "contrasena": "turismo2026",
+      "preferencias": {
+        "categoriasFavoritas": [],
+        "avisarProximidad": false,
+        "radioAvisoMetros": 500,
+        "tema": "claro"
+      }
+    }
+  ]
+}

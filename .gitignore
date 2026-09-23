@@ -44,3 +44,9 @@ example
 
 # bitácora interna de trabajo, no es parte del entregable
 RESEARCH.md
+
+# IDE
+.idea/
+
+# documentos personales / entregables sueltos, no son parte del código
+*.pdf

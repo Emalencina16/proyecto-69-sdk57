@@ -8,7 +8,10 @@
       "creadoEn": "2026-09-02T18:20:00-03:00",
       "contrasena": "123456",
       "preferencias": {
-        "categoriasFavoritas": ["cat-museos", "cat-playas"],
+        "categoriasFavoritas": [
+          "cat-museos",
+          "cat-playas"
+        ],
         "avisarProximidad": true,
         "radioAvisoMetros": 250,
         "tema": "sistema"
@@ -27,6 +30,783 @@
         "radioAvisoMetros": 500,
         "tema": "claro"
       }
+    }
+  ],
+  "categorias": [
+    {
+      "id": "cat-playas",
+      "nombre": "Playas",
+      "icono": "sunny-outline",
+      "color": "#E0A526",
+      "orden": 1
+    },
+    {
+      "id": "cat-termas",
+      "nombre": "Termas",
+      "icono": "water-outline",
+      "color": "#2A7FB8",
+      "orden": 2
+    },
+    {
+      "id": "cat-museos",
+      "nombre": "Museos y patrimonio",
+      "icono": "business-outline",
+      "color": "#8E5A4A",
+      "orden": 3
+    },
+    {
+      "id": "cat-gastronomia",
+      "nombre": "Gastronomía",
+      "icono": "restaurant-outline",
+      "color": "#C0392B",
+      "orden": 4
+    },
+    {
+      "id": "cat-artesanias",
+      "nombre": "Artesanías",
+      "icono": "color-palette-outline",
+      "color": "#8E44AD",
+      "orden": 5
+    },
+    {
+      "id": "cat-naturaleza",
+      "nombre": "Naturaleza",
+      "icono": "leaf-outline",
+      "color": "#2E7D32",
+      "orden": 6
+    },
+    {
+      "id": "cat-alojamiento",
+      "nombre": "Alojamiento",
+      "icono": "bed-outline",
+      "color": "#546E7A",
+      "orden": 7
+    }
+  ],
+  "lugares": [
+    {
+      "id": "lug-001",
+      "nombre": "Termas de Colón",
+      "categoriaId": "cat-termas",
+      "descripcionCorta": "Piletas termales cubiertas y al aire libre.",
+      "descripcion": "Complejo termal con piletas de agua a distintas temperaturas, parque y solárium. Ideal para ir en familia.",
+      "coordenadas": {
+        "latitud": -32.2155,
+        "longitud": -58.1409
+      },
+      "direccion": "Sabattini y Lavalle, Colón",
+      "imagenes": [
+        "https://picsum.photos/seed/termas-1/800/600",
+        "https://picsum.photos/seed/termas-2/800/600"
+      ],
+      "horarios": [
+        {
+          "dia": 0,
+          "abre": "08:00",
+          "cierra": "22:00"
+        },
+        {
+          "dia": 1,
+          "abre": "08:00",
+          "cierra": "22:00"
+        },
+        {
+          "dia": 2,
+          "abre": "08:00",
+          "cierra": "22:00"
+        },
+        {
+          "dia": 3,
+          "abre": "08:00",
+          "cierra": "22:00"
+        },
+        {
+          "dia": 4,
+          "abre": "08:00",
+          "cierra": "22:00"
+        },
+        {
+          "dia": 5,
+          "abre": "08:00",
+          "cierra": "22:00"
+        },
+        {
+          "dia": 6,
+          "abre": "08:00",
+          "cierra": "22:00"
+        }
+      ],
+      "telefono": "3447-424717",
+      "sitioWeb": "https://termasdecolon.example",
+      "precioEntrada": 9000,
+      "audioguia": null,
+      "codigoQr": "COLON:lug-001",
+      "accesible": true,
+      "activo": true,
+      "actualizadoEn": "2026-09-01T09:00:00-03:00"
+    },
+    {
+      "id": "lug-002",
+      "nombre": "Playa Norte",
+      "categoriaId": "cat-playas",
+      "descripcionCorta": "Playa de arena sobre el río Uruguay con guardavidas.",
+      "descripcion": "Una de las playas más concurridas de Colón. Tiene guardavidas en temporada, paradores y sombra.",
+      "coordenadas": {
+        "latitud": -32.2125,
+        "longitud": -58.1338
+      },
+      "direccion": "Costanera Quirós y calle Paysandú",
+      "imagenes": [
+        "https://picsum.photos/seed/playa-norte-1/800/600",
+        "https://picsum.photos/seed/playa-norte-2/800/600"
+      ],
+      "horarios": [],
+      "telefono": null,
+      "sitioWeb": null,
+      "precioEntrada": 0,
+      "audioguia": null,
+      "codigoQr": null,
+      "accesible": false,
+      "activo": true,
+      "actualizadoEn": "2026-08-20T12:00:00-03:00"
+    },
+    {
+      "id": "lug-003",
+      "nombre": "Playa Paso Vela",
+      "categoriaId": "cat-playas",
+      "descripcionCorta": "Playa tranquila al sur de la ciudad.",
+      "descripcion": "Playa amplia y más tranquila que las del centro, con zona de camping cercana.",
+      "coordenadas": {
+        "latitud": -32.238,
+        "longitud": -58.139
+      },
+      "direccion": "Acceso por calle 12 de Abril, Colón",
+      "imagenes": [
+        "https://picsum.photos/seed/paso-vela-1/800/600",
+        "https://picsum.photos/seed/paso-vela-2/800/600"
+      ],
+      "horarios": [],
+      "telefono": null,
+      "sitioWeb": null,
+      "precioEntrada": 0,
+      "audioguia": null,
+      "codigoQr": "COLON:lug-003",
+      "accesible": false,
+      "activo": true,
+      "actualizadoEn": "2026-08-20T12:00:00-03:00"
+    },
+    {
+      "id": "lug-004",
+      "nombre": "Molino Forclaz",
+      "categoriaId": "cat-museos",
+      "descripcionCorta": "Molino de viento de 1888 levantado por colonos suizos.",
+      "descripcion": "Construido en 1888 por Juan Bautista Forclaz, colono suizo, es uno de los pocos molinos harineros de viento que se conservan en el país.",
+      "coordenadas": {
+        "latitud": -32.1904,
+        "longitud": -58.1932
+      },
+      "direccion": "Colonia San José, Ruta Provincial 26",
+      "imagenes": [
+        "https://picsum.photos/seed/molino-1/800/600",
+        "https://picsum.photos/seed/molino-2/800/600"
+      ],
+      "horarios": [
+        {
+          "dia": 0,
+          "abre": "09:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 2,
+          "abre": "09:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 3,
+          "abre": "09:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 4,
+          "abre": "09:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 5,
+          "abre": "09:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 6,
+          "abre": "09:00",
+          "cierra": "19:00"
+        }
+      ],
+      "telefono": "345-4421234",
+      "sitioWeb": null,
+      "precioEntrada": 1500,
+      "audioguia": {
+        "url": "https://api.colon.tur.ar/audio/molino-es.m4a",
+        "duracionSegundos": 252,
+        "idioma": "es"
+      },
+      "codigoQr": "COLON:lug-004",
+      "accesible": false,
+      "activo": true,
+      "actualizadoEn": "2026-08-01T10:30:00-03:00"
+    },
+    {
+      "id": "lug-005",
+      "nombre": "Museo Casa de la Cultura",
+      "categoriaId": "cat-museos",
+      "descripcionCorta": "Casona histórica con muestras de la colonia.",
+      "descripcion": "Edificio histórico frente a la plaza con salas dedicadas a la historia de la ciudad y exposiciones temporarias.",
+      "coordenadas": {
+        "latitud": -32.2238,
+        "longitud": -58.1432
+      },
+      "direccion": "12 de Abril y Belgrano, Colón",
+      "imagenes": [
+        "https://picsum.photos/seed/casa-cultura-1/800/600",
+        "https://picsum.photos/seed/casa-cultura-2/800/600"
+      ],
+      "horarios": [
+        {
+          "dia": 1,
+          "abre": "08:00",
+          "cierra": "13:00"
+        },
+        {
+          "dia": 2,
+          "abre": "08:00",
+          "cierra": "13:00"
+        },
+        {
+          "dia": 3,
+          "abre": "08:00",
+          "cierra": "13:00"
+        },
+        {
+          "dia": 4,
+          "abre": "08:00",
+          "cierra": "13:00"
+        },
+        {
+          "dia": 5,
+          "abre": "08:00",
+          "cierra": "13:00"
+        },
+        {
+          "dia": 1,
+          "abre": "16:00",
+          "cierra": "20:00"
+        },
+        {
+          "dia": 2,
+          "abre": "16:00",
+          "cierra": "20:00"
+        },
+        {
+          "dia": 3,
+          "abre": "16:00",
+          "cierra": "20:00"
+        },
+        {
+          "dia": 4,
+          "abre": "16:00",
+          "cierra": "20:00"
+        },
+        {
+          "dia": 5,
+          "abre": "16:00",
+          "cierra": "20:00"
+        },
+        {
+          "dia": 6,
+          "abre": "16:00",
+          "cierra": "20:00"
+        }
+      ],
+      "telefono": "3447-421233",
+      "sitioWeb": null,
+      "precioEntrada": 0,
+      "audioguia": {
+        "url": "https://api.colon.tur.ar/audio/casa-cultura-es.m4a",
+        "duracionSegundos": 198,
+        "idioma": "es"
+      },
+      "codigoQr": "COLON:lug-005",
+      "accesible": true,
+      "activo": true,
+      "actualizadoEn": "2026-07-10T11:00:00-03:00"
+    },
+    {
+      "id": "lug-006",
+      "nombre": "Puerto viejo",
+      "categoriaId": "cat-museos",
+      "descripcionCorta": "Antiguo puerto de Colón sobre el río Uruguay.",
+      "descripcion": "Zona del puerto histórico por donde entraban los colonos. Hoy es paseo y mirador.",
+      "coordenadas": {
+        "latitud": -32.2262,
+        "longitud": -58.1368
+      },
+      "direccion": "Costanera Quirós y Alejo Peyret",
+      "imagenes": [
+        "https://picsum.photos/seed/puerto-1/800/600",
+        "https://picsum.photos/seed/puerto-2/800/600"
+      ],
+      "horarios": [],
+      "telefono": null,
+      "sitioWeb": null,
+      "precioEntrada": null,
+      "audioguia": {
+        "url": "https://api.colon.tur.ar/audio/puerto-es.m4a",
+        "duracionSegundos": 300,
+        "idioma": "es"
+      },
+      "codigoQr": "COLON:lug-006",
+      "accesible": true,
+      "activo": true,
+      "actualizadoEn": "2026-07-10T11:00:00-03:00"
+    },
+    {
+      "id": "lug-007",
+      "nombre": "Parque Nacional El Palmar",
+      "categoriaId": "cat-naturaleza",
+      "descripcionCorta": "Palmares de yatay, senderos y avistaje de aves.",
+      "descripcion": "El Parque Nacional El Palmar protege una de las últimas muestras del palmar de yatay, una palmera que llegó a cubrir buena parte de la costa del río Uruguay. El Parque Nacional El Palmar protege una de las últimas muestras del palmar de yatay, una palmera que llegó a cubrir buena parte de la costa del río Uruguay. El Parque Nacional El Palmar protege una de las últimas muestras del palmar de yatay, una palmera que llegó a cubrir buena parte de la costa del río Uruguay. El Parque Nacional El Palmar protege una de las últimas muestras del palmar de yatay, una palmera que llegó a cubrir buena parte de la costa del río Uruguay. El Parque Nacional El Palmar protege una de las últimas muestras del palmar de yatay, una palmera que llegó a cubrir buena parte de la costa del río Uruguay. El Parque Nacional El Palmar protege una de las últimas muestras del palmar de yatay, una palmera que llegó a cubrir buena parte de la costa del río Uruguay. El Parque Nacional El Palmar protege una de las últimas muestras del palmar de yatay, una palmera que llegó a cubrir buena parte de la costa del río Uruguay. El Parque Nacional El Palmar protege una de las últimas muestras del palmar de yatay, una palmera que llegó a cubrir buena parte de la costa del río Uruguay.",
+      "coordenadas": {
+        "latitud": -31.8637,
+        "longitud": -58.2735
+      },
+      "direccion": "Ruta Nacional 14 km 199, Ubajay",
+      "imagenes": [
+        "https://picsum.photos/seed/palmar-1/800/600",
+        "https://picsum.photos/seed/palmar-2/800/600"
+      ],
+      "horarios": [
+        {
+          "dia": 0,
+          "abre": "07:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 1,
+          "abre": "07:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 2,
+          "abre": "07:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 3,
+          "abre": "07:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 4,
+          "abre": "07:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 5,
+          "abre": "07:00",
+          "cierra": "19:00"
+        },
+        {
+          "dia": 6,
+          "abre": "07:00",
+          "cierra": "19:00"
+        }
+      ],
+      "telefono": "3447-493049",
+      "sitioWeb": "https://www.argentina.gob.ar/parquesnacionales/elpalmar",
+      "precioEntrada": 12000,
+      "audioguia": null,
+      "codigoQr": "COLON:lug-007",
+      "accesible": false,
+      "activo": true,
+      "actualizadoEn": "2026-09-05T08:00:00-03:00"
+    },
+    {
+      "id": "lug-008",
+      "nombre": "Parrilla La Costanera",
+      "categoriaId": "cat-gastronomia",
+      "descripcionCorta": "Pescado de río y parrilla frente al agua.",
+      "descripcion": "Restaurante recomendado con surubí, dorado y parrilla. Conviene reservar en temporada.",
+      "coordenadas": {
+        "latitud": -32.2201,
+        "longitud": -58.135
+      },
+      "direccion": "Costanera Quirós 1100, Colón",
+      "imagenes": [
+        "https://picsum.photos/seed/parrilla-1/800/600",
+        "https://picsum.photos/seed/parrilla-2/800/600"
+      ],
+      "horarios": [
+        {
+          "dia": 0,
+          "abre": "12:00",
+          "cierra": "15:30"
+        },
+        {
+          "dia": 2,
+          "abre": "12:00",
+          "cierra": "15:30"
+        },
+        {
+          "dia": 3,
+          "abre": "12:00",
+          "cierra": "15:30"
+        },
+        {
+          "dia": 4,
+          "abre": "12:00",
+          "cierra": "15:30"
+        },
+        {
+          "dia": 5,
+          "abre": "12:00",
+          "cierra": "15:30"
+        },
+        {
+          "dia": 6,
+          "abre": "12:00",
+          "cierra": "15:30"
+        },
+        {
+          "dia": 2,
+          "abre": "20:00",
+          "cierra": "23:59"
+        },
+        {
+          "dia": 3,
+          "abre": "20:00",
+          "cierra": "23:59"
+        },
+        {
+          "dia": 4,
+          "abre": "20:00",
+          "cierra": "23:59"
+        },
+        {
+          "dia": 5,
+          "abre": "20:00",
+          "cierra": "23:59"
+        },
+        {
+          "dia": 6,
+          "abre": "20:00",
+          "cierra": "23:59"
+        }
+      ],
+      "telefono": "3447-422345",
+      "sitioWeb": null,
+      "precioEntrada": null,
+      "audioguia": null,
+      "codigoQr": null,
+      "accesible": true,
+      "activo": true,
+      "actualizadoEn": "2026-06-15T18:00:00-03:00"
+    },
+    {
+      "id": "lug-009",
+      "nombre": "Anfiteatro Municipal",
+      "categoriaId": "cat-artesanias",
+      "descripcionCorta": "Sede de peñas, recitales y de la Fiesta de la Artesanía.",
+      "descripcion": "Anfiteatro a orillas del río donde se hacen recitales, peñas y la Fiesta Nacional de la Artesanía.",
+      "coordenadas": {
+        "latitud": -32.219,
+        "longitud": -58.1345
+      },
+      "direccion": "Costanera Quirós y San Martín",
+      "imagenes": [
+        "https://picsum.photos/seed/anfiteatro-1/800/600",
+        "https://picsum.photos/seed/anfiteatro-2/800/600"
+      ],
+      "horarios": [],
+      "telefono": null,
+      "sitioWeb": null,
+      "precioEntrada": null,
+      "audioguia": null,
+      "codigoQr": "COLON:lug-009",
+      "accesible": true,
+      "activo": true,
+      "actualizadoEn": "2026-08-01T10:30:00-03:00"
+    },
+    {
+      "id": "lug-010",
+      "nombre": "Feria de artesanos de la plaza",
+      "categoriaId": "cat-artesanias",
+      "descripcionCorta": "Artesanos locales todas las tardes.",
+      "descripcion": "Puestos de artesanías en madera, cuero, cerámica y tejidos de artesanos de la región.",
+      "coordenadas": {
+        "latitud": -32.2232,
+        "longitud": -58.1425
+      },
+      "direccion": "Plaza San Martín, Colón",
+      "imagenes": [
+        "https://picsum.photos/seed/feria-1/800/600",
+        "https://picsum.photos/seed/feria-2/800/600"
+      ],
+      "horarios": [
+        {
+          "dia": 0,
+          "abre": "17:00",
+          "cierra": "23:00"
+        },
+        {
+          "dia": 1,
+          "abre": "17:00",
+          "cierra": "23:00"
+        },
+        {
+          "dia": 2,
+          "abre": "17:00",
+          "cierra": "23:00"
+        },
+        {
+          "dia": 3,
+          "abre": "17:00",
+          "cierra": "23:00"
+        },
+        {
+          "dia": 4,
+          "abre": "17:00",
+          "cierra": "23:00"
+        },
+        {
+          "dia": 5,
+          "abre": "17:00",
+          "cierra": "23:00"
+        },
+        {
+          "dia": 6,
+          "abre": "17:00",
+          "cierra": "23:00"
+        }
+      ],
+      "telefono": null,
+      "sitioWeb": null,
+      "precioEntrada": 0,
+      "audioguia": null,
+      "codigoQr": "COLON:lug-010",
+      "accesible": true,
+      "activo": true,
+      "actualizadoEn": "2026-08-01T10:30:00-03:00"
+    },
+    {
+      "id": "lug-011",
+      "nombre": "Hostería del Río",
+      "categoriaId": "cat-alojamiento",
+      "descripcionCorta": "Hostería con vista al río.",
+      "descripcion": "Habitaciones dobles y familiares a dos cuadras de la costanera.",
+      "coordenadas": {
+        "latitud": -32.221,
+        "longitud": -58.138
+      },
+      "direccion": "Alejo Peyret 250, Colón",
+      "imagenes": [],
+      "horarios": [],
+      "telefono": "3447-423456",
+      "sitioWeb": null,
+      "precioEntrada": null,
+      "audioguia": null,
+      "codigoQr": null,
+      "accesible": false,
+      "activo": true,
+      "actualizadoEn": "2026-05-02T10:00:00-03:00"
+    },
+    {
+      "id": "lug-012",
+      "nombre": "Bodega Vulliez (cerrada)",
+      "categoriaId": "cat-gastronomia",
+      "descripcionCorta": "Dada de baja: no debería mostrarse.",
+      "descripcion": "Lugar dado de baja para probar el filtro de activos.",
+      "coordenadas": {
+        "latitud": -32.2,
+        "longitud": -58.17
+      },
+      "direccion": "Colonia Hughes",
+      "imagenes": [
+        "https://picsum.photos/seed/bodega-1/800/600",
+        "https://picsum.photos/seed/bodega-2/800/600"
+      ],
+      "horarios": [],
+      "telefono": null,
+      "sitioWeb": null,
+      "precioEntrada": null,
+      "audioguia": null,
+      "codigoQr": "COLON:lug-012",
+      "accesible": false,
+      "activo": false,
+      "actualizadoEn": "2026-03-01T10:00:00-03:00"
+    }
+  ],
+  "eventos": [
+    {
+      "id": "evt-011",
+      "titulo": "Visita guiada por el centro histórico",
+      "descripcion": "Recorrido gratuito a pie de una hora y media. Sale de la Casa de la Cultura.",
+      "lugarId": "lug-005",
+      "direccionLibre": null,
+      "coordenadas": null,
+      "inicio": "2026-09-27T17:00:00-03:00",
+      "fin": "2026-09-27T18:30:00-03:00",
+      "imagenUrl": null,
+      "precio": 0,
+      "estado": "programado"
+    },
+    {
+      "id": "evt-012",
+      "titulo": "Feria de productores en la costanera",
+      "descripcion": "Productos regionales, miel, quesos y dulces.",
+      "lugarId": null,
+      "direccionLibre": "Costanera Quirós, frente al muelle",
+      "coordenadas": {
+        "latitud": -32.2245,
+        "longitud": -58.136
+      },
+      "inicio": "2026-09-27T10:00:00-03:00",
+      "fin": "2026-09-27T19:00:00-03:00",
+      "imagenUrl": "https://picsum.photos/seed/feria-prod/800/600",
+      "precio": 0,
+      "estado": "programado"
+    },
+    {
+      "id": "evt-013",
+      "titulo": "Avistaje de aves en El Palmar",
+      "descripcion": "Salida con guía del parque. Llevar binoculares y repelente.",
+      "lugarId": "lug-007",
+      "direccionLibre": null,
+      "coordenadas": null,
+      "inicio": "2026-09-28T07:30:00-03:00",
+      "fin": "2026-09-28T10:30:00-03:00",
+      "imagenUrl": "https://picsum.photos/seed/aves/800/600",
+      "precio": 3000,
+      "estado": "programado"
+    },
+    {
+      "id": "evt-014",
+      "titulo": "Recital de rock en el anfiteatro",
+      "descripcion": "Bandas locales. Suspendido por pronóstico de tormenta; nueva fecha a confirmar.",
+      "lugarId": "lug-009",
+      "direccionLibre": null,
+      "coordenadas": null,
+      "inicio": "2026-09-28T21:00:00-03:00",
+      "fin": null,
+      "imagenUrl": null,
+      "precio": 5000,
+      "estado": "suspendido"
+    },
+    {
+      "id": "evt-015",
+      "titulo": "Cabalgata en campo de la familia Gay",
+      "descripcion": "Cabalgata por el campo con merienda criolla.",
+      "lugarId": null,
+      "direccionLibre": "Camino a Colonia Hocker, km 4",
+      "coordenadas": {
+        "latitud": -32.18,
+        "longitud": -58.19
+      },
+      "inicio": "2026-10-03T15:00:00-03:00",
+      "fin": "2026-10-03T19:00:00-03:00",
+      "imagenUrl": null,
+      "precio": 15000,
+      "estado": "cancelado"
+    },
+    {
+      "id": "evt-016",
+      "titulo": "Peña del sábado pasado",
+      "descripcion": "Evento ya terminado, para probar el estado finalizado.",
+      "lugarId": "lug-009",
+      "direccionLibre": null,
+      "coordenadas": null,
+      "inicio": "2026-09-20T21:00:00-03:00",
+      "fin": "2026-09-21T01:00:00-03:00",
+      "imagenUrl": null,
+      "precio": 0,
+      "estado": "finalizado"
+    },
+    {
+      "id": "evt-017",
+      "titulo": "Peña en el anfiteatro",
+      "descripcion": "Noche de folclore con artistas de la región.",
+      "lugarId": "lug-009",
+      "direccionLibre": null,
+      "coordenadas": null,
+      "inicio": "2026-11-14T21:00:00-03:00",
+      "fin": "2026-11-15T02:00:00-03:00",
+      "imagenUrl": "https://picsum.photos/seed/pena/800/600",
+      "precio": 0,
+      "estado": "programado"
+    },
+    {
+      "id": "evt-018",
+      "titulo": "Apertura de la Fiesta Nacional de la Artesanía",
+      "descripcion": "Inauguración con desfile de artesanos y espectáculo musical.",
+      "lugarId": "lug-009",
+      "direccionLibre": null,
+      "coordenadas": null,
+      "inicio": "2027-02-06T20:00:00-03:00",
+      "fin": null,
+      "imagenUrl": "https://picsum.photos/seed/artesania/800/600",
+      "precio": 8000,
+      "estado": "programado"
+    }
+  ],
+  "favoritos": [
+    {
+      "id": "fav-088",
+      "usuarioId": "usr-201",
+      "lugarId": "lug-004",
+      "creadoEn": "2026-09-12T09:05:00-03:00"
+    },
+    {
+      "id": "fav-089",
+      "usuarioId": "usr-201",
+      "lugarId": "lug-001",
+      "creadoEn": "2026-09-12T09:10:00-03:00"
+    },
+    {
+      "id": "fav-090",
+      "usuarioId": "usr-201",
+      "lugarId": "lug-007",
+      "creadoEn": "2026-09-13T20:00:00-03:00"
+    }
+  ],
+  "visitas": [
+    {
+      "id": "vis-310",
+      "usuarioId": "usr-201",
+      "lugarId": "lug-005",
+      "fechaHora": "2026-09-13T11:15:00-03:00",
+      "origen": "manual",
+      "fotoUri": null,
+      "nota": null,
+      "sincronizada": true
+    },
+    {
+      "id": "vis-311",
+      "usuarioId": "usr-201",
+      "lugarId": "lug-004",
+      "fechaHora": "2026-09-13T16:42:00-03:00",
+      "origen": "qr",
+      "fotoUri": "https://picsum.photos/seed/vis-311/800/600",
+      "nota": "Hacía 38 grados pero valió la pena",
+      "sincronizada": true
+    },
+    {
+      "id": "vis-312",
+      "usuarioId": "usr-201",
+      "lugarId": "lug-001",
+      "fechaHora": "2026-09-14T10:05:00-03:00",
+      "origen": "gps",
+      "fotoUri": null,
+      "nota": "Fuimos temprano, casi vacío",
+      "sincronizada": true
     }
   ]
 }

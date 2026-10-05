@@ -1,7 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Button, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Boton } from '@/components/Boton';
+import { Campo } from '@/components/Campo';
 import { iniciarSesion } from '@/servicios/autenticacion';
 
 export default function Login() {
@@ -24,29 +27,43 @@ export default function Login() {
   }
 
   return (
-    <View>
-      <Text>Mi Ciudad Colón</Text>
+    <SafeAreaView className="flex-1 bg-fondo">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1 justify-center px-6"
+      >
+        <View className="mb-8 gap-1">
+          <Text className="text-center text-3xl font-bold text-primario">Mi Ciudad Colón</Text>
+          <Text className="text-center text-base text-texto-suave">Ingresá para continuar</Text>
+        </View>
 
-      <Text>Email</Text>
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        testID="input-email"
-      />
+        <View className="gap-4">
+          <Campo
+            etiqueta="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="tu@email.com"
+            testID="input-email"
+          />
 
-      <Text>Contraseña</Text>
-      <TextInput
-        value={contrasena}
-        onChangeText={setContrasena}
-        secureTextEntry
-        testID="input-contrasena"
-      />
+          <Campo
+            etiqueta="Contraseña"
+            value={contrasena}
+            onChangeText={setContrasena}
+            secureTextEntry
+            placeholder="••••••••"
+            testID="input-contrasena"
+          />
 
-      {error && <Text>{error}</Text>}
+          {error && <Text className="text-sm text-error">{error}</Text>}
 
-      <Button title={cargando ? 'Ingresando...' : 'Ingresar'} onPress={handleSubmit} disabled={cargando} />
-    </View>
+          <View className="mt-2">
+            <Boton titulo={cargando ? 'Ingresando...' : 'Ingresar'} onPress={handleSubmit} deshabilitado={cargando} />
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

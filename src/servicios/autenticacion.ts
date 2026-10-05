@@ -1,25 +1,11 @@
 import { API_URL } from '@/config/api';
 import type { UsuarioMock } from '@/mocks/usuarios';
+import { ErrorServicio, errorDeRed, errorDeServidor } from '@/servicios/errores';
 import type { Usuario } from '@/tipos/usuario';
-
-// Mismo shape de error que va a devolver la API real (ver PRD).
-export interface ErrorApi {
-  codigo: string;
-  mensaje: string;
-}
-
-export class ErrorAutenticacion extends Error {
-  codigo: string;
-
-  constructor({ codigo, mensaje }: ErrorApi) {
-    super(mensaje);
-    this.codigo = codigo;
-  }
-}
 
 // Hoy pega contra json-server (ver db.json + script "mock-api"); cuando
 // llegue la API de la cátedra esto pasa a ser un POST /auth/login. La firma
-// y el contrato (resuelve Usuario, lanza ErrorAutenticacion) no cambian, así
+// y el contrato (resuelve Usuario, lanza ErrorServicio) no cambian, así
 // que login.tsx no necesita tocarse.
 export async function iniciarSesion(email: string, contrasena: string): Promise<Usuario> {
   let respuesta: Response;
@@ -28,24 +14,16 @@ export async function iniciarSesion(email: string, contrasena: string): Promise<
   } catch (error) {
     // eslint-disable-next-line no-console -- temporal, para diagnosticar el fetch a la mock API
     console.error('[iniciarSesion] fetch falló contra', API_URL, error);
-    throw new ErrorAutenticacion({
-      codigo: 'ERROR_RED',
-      mensaje: 'No se pudo conectar con el servidor.',
-    });
+    throw errorDeRed();
   }
 
-  if (!respuesta.ok) {
-    throw new ErrorAutenticacion({
-      codigo: 'ERROR_SERVIDOR',
-      mensaje: 'Ocurrió un error al iniciar sesión.',
-    });
-  }
+  if (!respuesta.ok) throw errorDeServidor();
 
   const encontrados: UsuarioMock[] = await respuesta.json();
   const encontrado = encontrados[0];
 
   if (!encontrado || encontrado.contrasena !== contrasena) {
-    throw new ErrorAutenticacion({
+    throw new ErrorServicio({
       codigo: 'CREDENCIALES_INVALIDAS',
       mensaje: 'El email o la contraseña no son correctos.',
     });

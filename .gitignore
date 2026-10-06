@@ -58,3 +58,7 @@ docs/
 
 # capturas de pantalla sueltas en la raíz
 /*.png
+
+# postgres local para levantar la api de la cátedra, no es parte de la app
+docker-compose.yml
+db/

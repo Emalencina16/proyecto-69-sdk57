@@ -51,3 +51,9 @@ PENDIENTES.md
 
 # documentos personales / entregables sueltos, no son parte del código
 *.pdf
+
+# material de teoría de la cátedra, no es parte de la app
+docs/
+
+# capturas de pantalla sueltas en la raíz
+/*.png

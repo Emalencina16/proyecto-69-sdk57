@@ -27,6 +27,10 @@ export default function TabsLayout() {
         options={{ title: 'Mapa', tabBarIcon: icono({ ios: 'map', android: 'map', web: 'map' }) }}
       />
       <Tabs.Screen
+        name="lugares"
+        options={{ title: 'Lugares', tabBarIcon: icono({ ios: 'mappin.and.ellipse', android: 'place', web: 'place' }) }}
+      />
+      <Tabs.Screen
         name="agenda"
         options={{
           title: 'Agenda',

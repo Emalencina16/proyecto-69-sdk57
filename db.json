@@ -765,16 +765,22 @@
       "creadoEn": "2026-09-12T09:05:00-03:00"
     },
     {
-      "id": "fav-089",
-      "usuarioId": "usr-201",
-      "lugarId": "lug-001",
-      "creadoEn": "2026-09-12T09:10:00-03:00"
-    },
-    {
       "id": "fav-090",
       "usuarioId": "usr-201",
       "lugarId": "lug-007",
       "creadoEn": "2026-09-13T20:00:00-03:00"
+    },
+    {
+      "usuarioId": "usr-201",
+      "lugarId": "lug-002",
+      "creadoEn": "2026-10-09T20:43:33.897Z",
+      "id": "QGoUgfmfksA"
+    },
+    {
+      "usuarioId": "usr-201",
+      "lugarId": "lug-001",
+      "creadoEn": "2026-10-09T20:47:32.785Z",
+      "id": "Alm0i4PyIHc"
     }
   ],
   "visitas": [
@@ -808,5 +814,6 @@
       "nota": "Fuimos temprano, casi vacío",
       "sincronizada": true
     }
-  ]
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
 }

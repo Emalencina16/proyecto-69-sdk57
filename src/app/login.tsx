@@ -5,9 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Boton } from '@/components/Boton';
 import { Campo } from '@/components/Campo';
+import { useSesion } from '@/estado/sesion';
 import { iniciarSesion } from '@/servicios/autenticacion';
 
 export default function Login() {
+  const sesion = useSesion();
   const [email, setEmail] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -17,7 +19,8 @@ export default function Login() {
     setError(null);
     setCargando(true);
     try {
-      await iniciarSesion(email, contrasena);
+      const usuario = await iniciarSesion(email, contrasena);
+      sesion.iniciar(usuario);
       router.replace('/mapa');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido');

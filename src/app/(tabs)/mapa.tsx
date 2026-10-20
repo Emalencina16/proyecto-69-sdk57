@@ -1,13 +1,18 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 
 import { FiltroCategorias } from '@/components/FiltroCategorias';
 import { Tarjeta } from '@/components/Tarjeta';
+import { useSesion } from '@/estado/sesion';
+import { agregarFavorito, obtenerFavoritos, quitarFavorito } from '@/servicios/favoritos';
 import { obtenerCategorias } from '@/servicios/categorias';
 import { obtenerLugares } from '@/servicios/lugares';
 import type { Categoria } from '@/tipos/categoria';
+import type { Favorito } from '@/tipos/favorito';
 import type { Lugar } from '@/tipos/lugar';
+import colores from '@/tema/colores';
 
 // Centro de Colón, con zoom suficiente para ver la ciudad y el Molino Forclaz.
 const REGION_COLON: Region = {
@@ -18,25 +23,44 @@ const REGION_COLON: Region = {
 };
 
 export default function Mapa() {
+  const { usuario } = useSesion();
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [favoritos, setFavoritos] = useState<Favorito[]>([]);
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([obtenerLugares(), obtenerCategorias()])
-      .then(([lugaresObtenidos, categoriasObtenidas]) => {
+    Promise.all([obtenerLugares(), obtenerCategorias(), usuario ? obtenerFavoritos(usuario.id) : []])
+      .then(([lugaresObtenidos, categoriasObtenidas, favoritosObtenidos]) => {
         setLugares(lugaresObtenidos);
         setCategorias(categoriasObtenidas);
+        setFavoritos(favoritosObtenidos);
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Error desconocido'))
       .finally(() => setCargando(false));
-  }, []);
+  }, [usuario]);
 
   // Se filtra acá y no en el servidor: el cambio es instantáneo y anda sin señal.
   const lugaresVisibles = categoriaId ? lugares.filter((lugar) => lugar.categoriaId === categoriaId) : lugares;
   const colorDe = (id: string) => categorias.find((categoria) => categoria.id === id)?.color;
+  const favoritoDe = (lugarId: string) => favoritos.find((favorito) => favorito.lugarId === lugarId);
+
+  async function alternarFavorito(lugarId: string) {
+    if (!usuario) return;
+    const favoritoExistente = favoritoDe(lugarId);
+
+    // Optimista: se actualiza la UI antes de que vuelva el servidor, como en
+    // el resto de la app no hay nada que deshacer si falla (es un mock local).
+    if (favoritoExistente) {
+      setFavoritos((actuales) => actuales.filter((favorito) => favorito.id !== favoritoExistente.id));
+      await quitarFavorito(favoritoExistente.id);
+    } else {
+      const favoritoNuevo = await agregarFavorito(usuario.id, lugarId);
+      setFavoritos((actuales) => [...actuales, favoritoNuevo]);
+    }
+  }
 
   return (
     <View className="flex-1 bg-fondo">
@@ -73,12 +97,29 @@ export default function Mapa() {
           ListEmptyComponent={
             <Text className="text-base text-texto-suave">No hay lugares en esta categoría.</Text>
           }
-          renderItem={({ item }) => (
-            <Tarjeta>
-              <Text className="text-base font-semibold text-texto">{item.nombre}</Text>
-              <Text className="text-sm text-texto-suave">{item.descripcionCorta}</Text>
-            </Tarjeta>
-          )}
+          renderItem={({ item }) => {
+            const esFavorito = Boolean(favoritoDe(item.id));
+            return (
+              <Tarjeta className="flex-row items-start justify-between">
+                <View className="flex-1 gap-2">
+                  <Text className="text-base font-semibold text-texto">{item.nombre}</Text>
+                  <Text className="text-sm text-texto-suave">{item.descripcionCorta}</Text>
+                </View>
+                <Pressable
+                  onPress={() => alternarFavorito(item.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={esFavorito ? 'Quitar de favoritos' : 'Marcar como favorito'}
+                  className="p-1"
+                >
+                  <Ionicons
+                    name={esFavorito ? 'heart' : 'heart-outline'}
+                    size={22}
+                    color={esFavorito ? colores.error : colores['texto-suave']}
+                  />
+                </Pressable>
+              </Tarjeta>
+            );
+          }}
         />
       )}
     </View>

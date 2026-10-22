@@ -35,7 +35,7 @@
       ],
       "expo-sqlite",
       "expo-secure-store",
-      "expo-audio",
+      ["expo-audio", { "enableBackgroundPlayback": true }],
       "expo-video",
       "@react-native-vector-icons/ionicons"
     ],

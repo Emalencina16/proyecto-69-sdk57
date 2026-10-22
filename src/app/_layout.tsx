@@ -2,6 +2,12 @@ import '../../global.css';
 
 import { Stack } from 'expo-router';
 
+import { SesionProvider } from '@/estado/sesion';
+
 export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <SesionProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </SesionProvider>
+  );
 }

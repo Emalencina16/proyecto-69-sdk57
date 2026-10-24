@@ -1,20 +1,65 @@
-// Forma de las respuestas de la API de la cátedra (ver PRD).
-export interface MetaApi {
+// Tipos que agrega la API de la cátedra y que no están en el PRD.
+// Copia de api-mi-ciudad/contract/api.ts.
+import type { Usuario } from '@/tipos/usuario';
+
+/** Paginación de toda respuesta de lista. */
+export interface Meta {
   total: number;
   pagina: number;
   porPagina: number;
 }
 
-export interface RespuestaApi<T> {
+/** Éxito con una lista: { datos: [...], meta: {...} } */
+export interface RespuestaLista<T> {
+  datos: T[];
+  meta: Meta;
+}
+
+/** Éxito con un solo recurso: { datos: {...}, meta: null } */
+export interface RespuestaUno<T> {
   datos: T;
-  meta: MetaApi;
+  meta: null;
 }
 
-export interface ErrorApi {
-  codigo: string;
-  mensaje: string;
+/** Error: { error: { codigo, mensaje } } — sin otros campos. */
+export interface RespuestaError {
+  error: {
+    codigo: string;
+    mensaje: string;
+  };
 }
 
-export interface RespuestaErrorApi {
-  error: ErrorApi;
+/** El interior de un error. No está en el contrato: lo usa ErrorServicio. */
+export type ErrorApi = RespuestaError['error'];
+
+/** Respuesta de POST /auth/registro y POST /auth/ingreso. */
+export interface Sesion {
+  token: string;
+  usuario: Usuario;
+}
+
+/** Respuesta de POST /archivos. */
+export interface ArchivoSubido {
+  url: string;
+  tipo: 'imagen' | 'audio' | 'video';
+  bytes: number;
+}
+
+/** Respuesta de GET /salud. */
+export interface Salud {
+  estado: 'ok';
+  motor: 'better-sqlite3' | 'postgres' | 'mysql' | 'mariadb';
+  almacen: 'local' | 'aws' | 'supabase' | 'r2' | 'b2' | 's3proxy' | 'localstack';
+  version: string;
+}
+
+/** Respuesta de POST /dispositivos: el teléfono registrado para recibir push. */
+export interface Dispositivo {
+  tokenExpo: string;
+  plataforma: 'ios' | 'android';
+}
+
+/** Respuesta de POST /dispositivos/prueba: a cuántos teléfonos se mandó la push de prueba. */
+export interface PruebaNotificacion {
+  enviadas: number;
 }

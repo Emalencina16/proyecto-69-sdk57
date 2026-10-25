@@ -8,13 +8,33 @@ import type { RespuestaError, RespuestaLista, RespuestaUno } from '@/tipos/api';
 // con ese mismo código y mensaje (los mensajes están pensados para mostrarse
 // tal cual en pantalla).
 
-async function pedir(ruta: string, opciones?: RequestInit): Promise<unknown> {
+// Lo configura el SesionProvider (src/estado/sesion.tsx) al iniciar, recuperar
+// o cerrar la sesión. Si hay token, viaja en cada pedido.
+let token: string | null = null;
+let alVencerSesion: (() => void) | null = null;
+
+export function configurarToken(nuevoToken: string | null) {
+  token = nuevoToken;
+}
+
+export function configurarAlVencerSesion(funcion: () => void) {
+  alVencerSesion = funcion;
+}
+
+async function pedir(ruta: string, opciones: RequestInit = {}): Promise<unknown> {
+  const headers = new Headers(opciones.headers);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
   let respuesta: Response;
   try {
-    respuesta = await fetch(`${API_URL}${ruta}`, opciones);
+    respuesta = await fetch(`${API_URL}${ruta}`, { ...opciones, headers });
   } catch {
     throw errorDeRed();
   }
+
+  // Mandamos token y la API lo rechazó: vencido (dura 30 días) o inválido.
+  // Sin token (ej. login con contraseña mal) el 401 es un error común.
+  if (respuesta.status === 401 && token) alVencerSesion?.();
 
   // DELETE exitoso: 204 sin cuerpo.
   if (respuesta.status === 204) return null;

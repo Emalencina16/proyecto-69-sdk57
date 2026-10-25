@@ -19,8 +19,7 @@ export default function Login() {
     setError(null);
     setCargando(true);
     try {
-      const usuario = await iniciarSesion(email, contrasena);
-      sesion.iniciar(usuario);
+      await sesion.iniciar(await iniciarSesion(email, contrasena));
       router.replace('/mapa');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido');

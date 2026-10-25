@@ -1,8 +1,21 @@
 import { Redirect } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
 
-// Hoy siempre manda a /login porque todavía no persistimos sesión.
-// Cuando agreguemos expo-secure-store, acá vamos a chequear si hay un
-// token guardado y redirigir a /home o /login según corresponda.
+import { useSesion } from '@/estado/sesion';
+import colores from '@/tema/colores';
+
+// Si hay una sesión guardada en el teléfono se entra directo al mapa; si no,
+// a login. Mientras se lee la sesión guardada se muestra un indicador.
 export default function Index() {
-  return <Redirect href="/login" />;
+  const { usuario, cargando } = useSesion();
+
+  if (cargando) {
+    return (
+      <View className="flex-1 items-center justify-center bg-fondo">
+        <ActivityIndicator color={colores.primario} />
+      </View>
+    );
+  }
+
+  return <Redirect href={usuario ? '/mapa' : '/login'} />;
 }

@@ -1,34 +1,19 @@
-import { MOCK_API_URL as API_URL } from '@/config/api';
-import type { UsuarioMock } from '@/mocks/usuarios';
-import { ErrorServicio, errorDeRed, errorDeServidor } from '@/servicios/errores';
+import { pedirUno } from '@/servicios/cliente';
+import type { Sesion } from '@/tipos/api';
 import type { Usuario } from '@/tipos/usuario';
 
-// Hoy pega contra json-server (ver db.json + script "mock-api"); cuando
-// llegue la API de la cátedra esto pasa a ser un POST /auth/login. La firma
-// y el contrato (resuelve Usuario, lanza ErrorServicio) no cambian, así
-// que login.tsx no necesita tocarse.
-export async function iniciarSesion(email: string, contrasena: string): Promise<Usuario> {
-  let respuesta: Response;
-  try {
-    respuesta = await fetch(`${API_URL}/usuarios?email=${encodeURIComponent(email)}`);
-  } catch (error) {
-    // eslint-disable-next-line no-console -- temporal, para diagnosticar el fetch a la mock API
-    console.error('[iniciarSesion] fetch falló contra', API_URL, error);
-    throw errorDeRed();
-  }
+// Si el email o la contraseña no coinciden, la API responde
+// CREDENCIALES_INVALIDAS y el cliente lo lanza como ErrorServicio con el
+// mensaje listo para mostrar.
+export async function iniciarSesion(email: string, contrasena: string): Promise<Sesion> {
+  return pedirUno<Sesion>('/auth/ingreso', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim(), contrasena }),
+  });
+}
 
-  if (!respuesta.ok) throw errorDeServidor();
-
-  const encontrados: UsuarioMock[] = await respuesta.json();
-  const encontrado = encontrados[0];
-
-  if (!encontrado || encontrado.contrasena !== contrasena) {
-    throw new ErrorServicio({
-      codigo: 'CREDENCIALES_INVALIDAS',
-      mensaje: 'El email o la contraseña no son correctos.',
-    });
-  }
-
-  const { contrasena: _contrasena, ...usuario } = encontrado;
-  return usuario;
+// El usuario dueño del token actual.
+export async function obtenerYo(): Promise<Usuario> {
+  return pedirUno<Usuario>('/yo');
 }

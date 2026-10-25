@@ -1,4 +1,4 @@
-import { API_URL } from '@/config/api';
+import { MOCK_API_URL as API_URL } from '@/config/api';
 import type { UsuarioMock } from '@/mocks/usuarios';
 import { ErrorServicio, errorDeRed, errorDeServidor } from '@/servicios/errores';
 import type { Usuario } from '@/tipos/usuario';

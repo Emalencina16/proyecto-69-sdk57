@@ -1,4 +1,4 @@
-import { API_URL } from '@/config/api';
+import { MOCK_API_URL as API_URL } from '@/config/api';
 import { errorDeRed, errorDeServidor } from '@/servicios/errores';
 import { obtenerLugar } from '@/servicios/lugares';
 import type { Favorito } from '@/tipos/favorito';

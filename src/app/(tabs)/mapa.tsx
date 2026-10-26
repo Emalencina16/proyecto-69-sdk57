@@ -32,7 +32,7 @@ export default function Mapa() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([obtenerLugares(), obtenerCategorias(), usuario ? obtenerFavoritos(usuario.id) : []])
+    Promise.all([obtenerLugares(), obtenerCategorias(), usuario ? obtenerFavoritos() : []])
       .then(([lugaresObtenidos, categoriasObtenidas, favoritosObtenidos]) => {
         setLugares(lugaresObtenidos);
         setCategorias(categoriasObtenidas);
@@ -51,14 +51,22 @@ export default function Mapa() {
     if (!usuario) return;
     const favoritoExistente = favoritoDe(lugarId);
 
-    // Optimista: se actualiza la UI antes de que vuelva el servidor, como en
-    // el resto de la app no hay nada que deshacer si falla (es un mock local).
+    // Al quitar, optimista: el corazón se apaga antes de que vuelva el
+    // servidor, y si el pedido falla se vuelve a prender.
     if (favoritoExistente) {
       setFavoritos((actuales) => actuales.filter((favorito) => favorito.id !== favoritoExistente.id));
-      await quitarFavorito(favoritoExistente.id);
+      try {
+        await quitarFavorito(lugarId);
+      } catch {
+        setFavoritos((actuales) => [...actuales, favoritoExistente]);
+      }
     } else {
-      const favoritoNuevo = await agregarFavorito(usuario.id, lugarId);
-      setFavoritos((actuales) => [...actuales, favoritoNuevo]);
+      try {
+        const favoritoNuevo = await agregarFavorito(lugarId);
+        setFavoritos((actuales) => [...actuales, favoritoNuevo]);
+      } catch {
+        // Sin señal o error de la API: el corazón queda como estaba.
+      }
     }
   }
 

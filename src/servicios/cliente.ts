@@ -21,7 +21,8 @@ export function configurarAlVencerSesion(funcion: () => void) {
   alVencerSesion = funcion;
 }
 
-async function pedir(ruta: string, opciones: RequestInit = {}): Promise<unknown> {
+// Exportada para los pedidos sin respuesta que leer (DELETE → 204).
+export async function pedir(ruta: string, opciones: RequestInit = {}): Promise<unknown> {
   const headers = new Headers(opciones.headers);
   if (token) headers.set('Authorization', `Bearer ${token}`);
 

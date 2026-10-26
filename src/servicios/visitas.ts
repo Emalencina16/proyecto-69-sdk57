@@ -1,15 +1,12 @@
-import { visitasMock } from "@/mocks/visitas";
+import { pedirLista } from "@/servicios/cliente";
 import type { Visita } from "@/tipos/visita";
 
-// Hoy devuelve los datos de prueba de src/mocks/visitas.ts.
-// Más adelante se reemplaza por la base local del teléfono (SQLite) y la API.
-// Es async desde el primer día, así las pantallas no cambian después.
+// Visitas de quien tiene la sesión (el usuario sale del token). La API ya las
+// devuelve en orden de recorrido: de la más antigua a la más nueva.
 
-const visitas: Visita[] = [...visitasMock];
+// Por defecto la API pagina de a 20; para visitas admite hasta 500.
+const VISITAS_POR_PAGINA = 500;
 
 export async function obtenerVisitas(): Promise<Visita[]> {
-  // Recorrido en orden: de la visita más antigua a la más nueva.
-  return [...visitas].sort(
-    (a, b) => new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime(),
-  );
+  return pedirLista<Visita>(`/yo/visitas?porPagina=${VISITAS_POR_PAGINA}`);
 }

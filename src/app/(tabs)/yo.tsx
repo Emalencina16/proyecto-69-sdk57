@@ -23,7 +23,7 @@ export default function Yo() {
     useCallback(() => {
       if (!sesion.usuario) return;
       setCargando(true);
-      obtenerLugaresFavoritos(sesion.usuario.id)
+      obtenerLugaresFavoritos()
         .then(setFavoritos)
         .catch((e) => setError(e instanceof Error ? e.message : 'Error desconocido'))
         .finally(() => setCargando(false));

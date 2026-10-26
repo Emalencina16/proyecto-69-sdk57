@@ -8,7 +8,3 @@ const hostDesarrollo = Constants.expoConfig?.hostUri?.split(':')[0] ?? 'localhos
 // API de la cátedra (api-mi-ciudad/, puerto 3000). Para el APK se define
 // EXPO_PUBLIC_API_URL en .env con la URL publicada.
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? `http://${hostDesarrollo}:3000`;
-
-// json-server (db.json, puerto 3001). Temporal: lo usan los servicios que
-// todavía no pasaron a la API (autenticación y favoritos).
-export const MOCK_API_URL = `http://${hostDesarrollo}:3001`;

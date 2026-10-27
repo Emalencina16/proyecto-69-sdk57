@@ -39,7 +39,8 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     configurarAlVencerSesion(() => {
       cerrar();
-      router.replace('/login');
+      // Encima de la pantalla actual: si elige "Seguir sin cuenta" vuelve ahí.
+      router.push('/login');
     });
 
     leerSesion().then((guardada) => {

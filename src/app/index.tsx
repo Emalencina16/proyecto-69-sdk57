@@ -4,10 +4,12 @@ import { ActivityIndicator, View } from 'react-native';
 import { useSesion } from '@/estado/sesion';
 import colores from '@/tema/colores';
 
-// Si hay una sesión guardada en el teléfono se entra directo al mapa; si no,
-// a login. Mientras se lee la sesión guardada se muestra un indicador.
+// La app abre siempre en el mapa: para mirar no hace falta cuenta (PRD §5, "la
+// cuenta es para guardar cosas"). El login aparece cuando la persona quiere
+// guardar algo. Se espera a leer la sesión guardada para que el mapa ya
+// arranque con los favoritos de quien estaba logueado.
 export default function Index() {
-  const { usuario, cargando } = useSesion();
+  const { cargando } = useSesion();
 
   if (cargando) {
     return (
@@ -17,5 +19,5 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={usuario ? '/mapa' : '/login'} />;
+  return <Redirect href="/mapa" />;
 }

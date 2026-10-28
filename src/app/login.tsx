@@ -15,13 +15,19 @@ export default function Login() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Al login se llega desde una pantalla (el corazón del mapa, Yo, Mi
+  // recorrido): se vuelve a esa. Si se abrió solo (ej. sesión vencida), al mapa.
+  function volver() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/mapa');
+  }
+
   async function handleSubmit() {
     setError(null);
     setCargando(true);
     try {
-      const usuario = await iniciarSesion(email, contrasena);
-      sesion.iniciar(usuario);
-      router.replace('/mapa');
+      await sesion.iniciar(await iniciarSesion(email, contrasena));
+      volver();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido');
     } finally {
@@ -37,7 +43,7 @@ export default function Login() {
       >
         <View className="mb-8 gap-1">
           <Text className="text-center text-3xl font-bold text-primario">Mi Ciudad Colón</Text>
-          <Text className="text-center text-base text-texto-suave">Ingresá para continuar</Text>
+          <Text className="text-center text-base text-texto-suave">Ingresá para guardar tus favoritos y tu recorrido</Text>
         </View>
 
         <View className="gap-4">
@@ -65,6 +71,8 @@ export default function Login() {
           <View className="mt-2">
             <Boton titulo={cargando ? 'Ingresando...' : 'Ingresar'} onPress={handleSubmit} deshabilitado={cargando} />
           </View>
+
+          <Boton titulo="Seguir sin cuenta" variante="secundario" onPress={volver} deshabilitado={cargando} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

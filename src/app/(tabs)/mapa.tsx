@@ -1,4 +1,5 @@
 import { Ionicons } from '@react-native-vector-icons/ionicons';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
@@ -31,15 +32,28 @@ export default function Mapa() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // El catálogo es público: se pide una vez, haya sesión o no.
   useEffect(() => {
-    Promise.all([obtenerLugares(), obtenerCategorias(), usuario ? obtenerFavoritos(usuario.id) : []])
-      .then(([lugaresObtenidos, categoriasObtenidas, favoritosObtenidos]) => {
+    Promise.all([obtenerLugares(), obtenerCategorias()])
+      .then(([lugaresObtenidos, categoriasObtenidas]) => {
         setLugares(lugaresObtenidos);
         setCategorias(categoriasObtenidas);
-        setFavoritos(favoritosObtenidos);
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Error desconocido'))
       .finally(() => setCargando(false));
+  }, []);
+
+  // Los favoritos van aparte y se vuelven a pedir al ingresar o salir. Si
+  // fallan (ej. token vencido: el cliente ya cierra la sesión y abre el
+  // login), el mapa se sigue viendo, solo que sin corazones marcados.
+  useEffect(() => {
+    if (!usuario) {
+      setFavoritos([]);
+      return;
+    }
+    obtenerFavoritos()
+      .then(setFavoritos)
+      .catch(() => setFavoritos([]));
   }, [usuario]);
 
   // Se filtra acá y no en el servidor: el cambio es instantáneo y anda sin señal.
@@ -48,17 +62,29 @@ export default function Mapa() {
   const favoritoDe = (lugarId: string) => favoritos.find((favorito) => favorito.lugarId === lugarId);
 
   async function alternarFavorito(lugarId: string) {
-    if (!usuario) return;
+    // Mirar no pide cuenta, guardar sí: sin sesión, el corazón lleva al login.
+    if (!usuario) {
+      router.push('/login');
+      return;
+    }
     const favoritoExistente = favoritoDe(lugarId);
 
-    // Optimista: se actualiza la UI antes de que vuelva el servidor, como en
-    // el resto de la app no hay nada que deshacer si falla (es un mock local).
+    // Al quitar, optimista: el corazón se apaga antes de que vuelva el
+    // servidor, y si el pedido falla se vuelve a prender.
     if (favoritoExistente) {
       setFavoritos((actuales) => actuales.filter((favorito) => favorito.id !== favoritoExistente.id));
-      await quitarFavorito(favoritoExistente.id);
+      try {
+        await quitarFavorito(lugarId);
+      } catch {
+        setFavoritos((actuales) => [...actuales, favoritoExistente]);
+      }
     } else {
-      const favoritoNuevo = await agregarFavorito(usuario.id, lugarId);
-      setFavoritos((actuales) => [...actuales, favoritoNuevo]);
+      try {
+        const favoritoNuevo = await agregarFavorito(lugarId);
+        setFavoritos((actuales) => [...actuales, favoritoNuevo]);
+      } catch {
+        // Sin señal o error de la API: el corazón queda como estaba.
+      }
     }
   }
 

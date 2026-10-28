@@ -1,22 +1,44 @@
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Text } from "react-native";
 
+import { Boton } from "@/components/Boton";
 import { Pantalla } from "@/components/Pantalla";
 import { Tarjeta } from "@/components/Tarjeta";
+import { useSesion } from "@/estado/sesion";
 import { obtenerVisitas } from "@/servicios/visitas";
 import type { Visita } from "@/tipos/visita";
 
 export default function MiRecorrido() {
+  const { usuario } = useSesion();
   const [visitas, setVisitas] = useState<Visita[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // El recorrido es de la cuenta: se vuelve a pedir al ingresar o salir.
   useEffect(() => {
+    if (!usuario) {
+      setVisitas([]);
+      return;
+    }
+    setCargando(true);
+    setError(null);
     obtenerVisitas()
       .then(setVisitas)
       .catch(() => setError("No pudimos cargar tu recorrido."))
       .finally(() => setCargando(false));
-  }, []);
+  }, [usuario]);
+
+  if (!usuario) {
+    return (
+      <Pantalla>
+        <Text className="text-base text-texto">
+          Ingresá para ver y guardar los lugares que visitaste.
+        </Text>
+        <Boton titulo="Ingresar" onPress={() => router.push("/login")} />
+      </Pantalla>
+    );
+  }
 
   if (cargando) {
     return (

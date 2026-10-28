@@ -23,23 +23,37 @@ export default function Yo() {
     useCallback(() => {
       if (!sesion.usuario) return;
       setCargando(true);
-      obtenerLugaresFavoritos(sesion.usuario.id)
+      setError(null);
+      obtenerLugaresFavoritos()
         .then(setFavoritos)
         .catch((e) => setError(e instanceof Error ? e.message : 'Error desconocido'))
         .finally(() => setCargando(false));
     }, [sesion.usuario]),
   );
 
+  // Al cerrar sesión se queda en Yo, que pasa a mostrar el botón de ingresar.
   function cerrarSesion() {
     sesion.cerrar();
-    router.replace('/login');
+  }
+
+  if (!sesion.usuario) {
+    return (
+      <Pantalla>
+        <Tarjeta>
+          <Text className="text-base text-texto">
+            No hace falta una cuenta para mirar. Ingresá para guardar tus lugares favoritos y tu recorrido.
+          </Text>
+        </Tarjeta>
+        <Boton titulo="Ingresar" onPress={() => router.push('/login')} />
+      </Pantalla>
+    );
   }
 
   return (
     <Pantalla>
       <Tarjeta>
         <Text className="text-sm font-semibold uppercase text-texto-suave">Usuario</Text>
-        <Text className="text-base text-texto">{sesion.usuario?.nombre ?? 'Sin sesión'}</Text>
+        <Text className="text-base text-texto">{sesion.usuario.nombre}</Text>
       </Tarjeta>
 
       <Text className="text-sm font-semibold uppercase text-texto-suave">Favoritos</Text>

@@ -1,5 +1,5 @@
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { ActivityIndicator, FlatList, Text } from 'react-native';
 
 import { Boton } from '@/components/Boton';
@@ -7,29 +7,27 @@ import { Pantalla } from '@/components/Pantalla';
 import { Tarjeta } from '@/components/Tarjeta';
 import { useSesion } from '@/estado/sesion';
 import { obtenerLugaresFavoritos } from '@/servicios/favoritos';
-import type { Lugar } from '@/tipos/lugar';
 
 export default function Yo() {
   const sesion = useSesion();
-  const [favoritos, setFavoritos] = useState<Lugar[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Las tabs de expo-router no se desmontan al cambiar de pestaña, así que un
-  // useEffect normal (con [] o [sesion.usuario]) solo corre la primera vez
-  // que se visita esta pantalla. Con useFocusEffect se vuelve a pedir la
-  // lista cada vez que "Yo" entra en foco, para reflejar lo que se tocó en Mapa.
-  useFocusEffect(
-    useCallback(() => {
-      if (!sesion.usuario) return;
-      setCargando(true);
-      setError(null);
-      obtenerLugaresFavoritos()
-        .then(setFavoritos)
-        .catch((e) => setError(e instanceof Error ? e.message : 'Error desconocido'))
-        .finally(() => setCargando(false));
-    }, [sesion.usuario]),
-  );
+  // Antes hacía falta useFocusEffect porque expo-router no desmonta las
+  // tabs: un useEffect normal solo pedía la lista la primera vez que se
+  // visitaba esta pantalla, y no se enteraba si se marcaba un favorito en
+  // Mapa. Con TanStack Query no hace falta acordarse de refrescar nada:
+  // ['favoritos', usuario.id, ...] comparte el mismo prefijo de clave que
+  // usa mapa.tsx, así que cuando esa pantalla invalida ['favoritos',
+  // usuario.id] tras una mutación, esta consulta se entera y se vuelve a
+  // pedir sola, esté o no en foco.
+  const {
+    data: favoritos = [],
+    isPending,
+    error,
+  } = useQuery({
+    queryKey: ['favoritos', sesion.usuario?.id, 'lugares'],
+    queryFn: obtenerLugaresFavoritos,
+    enabled: Boolean(sesion.usuario),
+  });
 
   // Al cerrar sesión se queda en Yo, que pasa a mostrar el botón de ingresar.
   function cerrarSesion() {
@@ -58,10 +56,10 @@ export default function Yo() {
 
       <Text className="text-sm font-semibold uppercase text-texto-suave">Favoritos</Text>
 
-      {cargando ? (
+      {isPending ? (
         <ActivityIndicator size="large" />
       ) : error ? (
-        <Text className="text-base text-error">{error}</Text>
+        <Text className="text-base text-error">{error.message}</Text>
       ) : (
         <FlatList
           data={favoritos}

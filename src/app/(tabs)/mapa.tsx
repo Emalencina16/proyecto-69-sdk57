@@ -1,4 +1,5 @@
 import { Ionicons } from '@react-native-vector-icons/ionicons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -25,9 +26,9 @@ const REGION_COLON: Region = {
 
 export default function Mapa() {
   const { usuario } = useSesion();
+  const queryClient = useQueryClient();
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [favoritos, setFavoritos] = useState<Favorito[]>([]);
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,49 +44,70 @@ export default function Mapa() {
       .finally(() => setCargando(false));
   }, []);
 
-  // Los favoritos van aparte y se vuelven a pedir al ingresar o salir. Si
-  // fallan (ej. token vencido: el cliente ya cierra la sesión y abre el
-  // login), el mapa se sigue viendo, solo que sin corazones marcados.
-  useEffect(() => {
-    if (!usuario) {
-      setFavoritos([]);
-      return;
-    }
-    obtenerFavoritos()
-      .then(setFavoritos)
-      .catch(() => setFavoritos([]));
-  }, [usuario]);
+  // Favoritos: no es estado nuestro, es una copia de lo que tiene el
+  // servidor — por eso va con TanStack Query y no con useState+useEffect.
+  // La clave incluye el usuario para no mostrar por un instante los
+  // favoritos de otra cuenta si cambia la sesión; enabled la apaga sin
+  // sesión (mirar no pide cuenta). Si falla (ej. token vencido: el cliente
+  // ya cierra la sesión y abre el login), el mapa se sigue viendo, solo que
+  // sin corazones marcados.
+  const claveFavoritos = ['favoritos', usuario?.id] as const;
+  const { data: favoritos = [] } = useQuery({
+    queryKey: claveFavoritos,
+    queryFn: obtenerFavoritos,
+    enabled: Boolean(usuario),
+    retry: 0,
+  });
 
   // Se filtra acá y no en el servidor: el cambio es instantáneo y anda sin señal.
   const lugaresVisibles = categoriaId ? lugares.filter((lugar) => lugar.categoriaId === categoriaId) : lugares;
   const colorDe = (id: string) => categorias.find((categoria) => categoria.id === id)?.color;
   const favoritoDe = (lugarId: string) => favoritos.find((favorito) => favorito.lugarId === lugarId);
 
-  async function alternarFavorito(lugarId: string) {
+  // Actualización optimista con los tres tiempos de una mutación:
+  // onMutate cambia la caché YA (el corazón reacciona al toque, no al
+  // servidor), onError la vuelve al valor de antes si el pedido falla, y
+  // onSettled invalida la clave para que quede exactamente como la tiene la
+  // API — eso de paso refresca sola la lista de "Yo", sin que nadie se lo pida.
+  const alternar = useMutation<void, Error, { lugarId: string; favoritoExistente?: Favorito }, { previos: Favorito[] }>({
+    mutationFn: async ({ lugarId, favoritoExistente }) => {
+      // Se descarta lo que devuelve la API (ej. el favorito recién creado,
+      // con su id real): el dato de verdad lo trae el onSettled de abajo.
+      if (favoritoExistente) {
+        await quitarFavorito(lugarId);
+      } else {
+        await agregarFavorito(lugarId);
+      }
+    },
+    onMutate: async ({ lugarId, favoritoExistente }) => {
+      await queryClient.cancelQueries({ queryKey: claveFavoritos });
+      const previos = queryClient.getQueryData<Favorito[]>(claveFavoritos) ?? [];
+      queryClient.setQueryData<Favorito[]>(
+        claveFavoritos,
+        favoritoExistente
+          ? previos.filter((favorito) => favorito.id !== favoritoExistente.id)
+          : [
+              ...previos,
+              { id: `temporal-${lugarId}`, usuarioId: usuario!.id, lugarId, creadoEn: new Date().toISOString() },
+            ],
+      );
+      return { previos };
+    },
+    onError: (_error, _variables, contexto) => {
+      if (contexto) queryClient.setQueryData(claveFavoritos, contexto.previos);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: claveFavoritos });
+    },
+  });
+
+  function alternarFavorito(lugarId: string, favoritoExistente?: Favorito) {
     // Mirar no pide cuenta, guardar sí: sin sesión, el corazón lleva al login.
     if (!usuario) {
       router.push('/login');
       return;
     }
-    const favoritoExistente = favoritoDe(lugarId);
-
-    // Al quitar, optimista: el corazón se apaga antes de que vuelva el
-    // servidor, y si el pedido falla se vuelve a prender.
-    if (favoritoExistente) {
-      setFavoritos((actuales) => actuales.filter((favorito) => favorito.id !== favoritoExistente.id));
-      try {
-        await quitarFavorito(lugarId);
-      } catch {
-        setFavoritos((actuales) => [...actuales, favoritoExistente]);
-      }
-    } else {
-      try {
-        const favoritoNuevo = await agregarFavorito(lugarId);
-        setFavoritos((actuales) => [...actuales, favoritoNuevo]);
-      } catch {
-        // Sin señal o error de la API: el corazón queda como estaba.
-      }
-    }
+    alternar.mutate({ lugarId, favoritoExistente });
   }
 
   return (
@@ -124,7 +146,7 @@ export default function Mapa() {
             <Text className="text-base text-texto-suave">No hay lugares en esta categoría.</Text>
           }
           renderItem={({ item }) => {
-            const esFavorito = Boolean(favoritoDe(item.id));
+            const favoritoExistente = favoritoDe(item.id);
             return (
               <Tarjeta className="flex-row items-start justify-between">
                 <View className="flex-1 gap-2">
@@ -132,15 +154,15 @@ export default function Mapa() {
                   <Text className="text-sm text-texto-suave">{item.descripcionCorta}</Text>
                 </View>
                 <Pressable
-                  onPress={() => alternarFavorito(item.id)}
+                  onPress={() => alternarFavorito(item.id, favoritoExistente)}
                   accessibilityRole="button"
-                  accessibilityLabel={esFavorito ? 'Quitar de favoritos' : 'Marcar como favorito'}
+                  accessibilityLabel={favoritoExistente ? 'Quitar de favoritos' : 'Marcar como favorito'}
                   className="p-1"
                 >
                   <Ionicons
-                    name={esFavorito ? 'heart' : 'heart-outline'}
+                    name={favoritoExistente ? 'heart' : 'heart-outline'}
                     size={22}
-                    color={esFavorito ? colores.error : colores['texto-suave']}
+                    color={favoritoExistente ? colores.error : colores['texto-suave']}
                   />
                 </Pressable>
               </Tarjeta>

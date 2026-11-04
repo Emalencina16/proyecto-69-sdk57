@@ -35,13 +35,25 @@
       ],
       "expo-sqlite",
       "expo-secure-store",
-      ["expo-audio", { "enableBackgroundPlayback": true }],
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ],
       "expo-video",
       "@react-native-vector-icons/ionicons"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2cd8a6fc-036e-4eb7-89c6-31babe933d63"
+      }
+    },
+    "owner": "walterfrias"
   }
 }

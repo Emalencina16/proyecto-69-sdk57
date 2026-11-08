@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 
 import { obtenerYo } from '@/servicios/autenticacion';
 import { configurarAlVencerSesion, configurarToken } from '@/servicios/cliente';
@@ -23,6 +24,12 @@ import type { Usuario } from '@/tipos/usuario';
 // guardada se pide la huella. Si cancela, la app sigue sin cuenta (el mapa se
 // mira igual) y la sesión queda "bloqueada": guardada pero sin usar, hasta que
 // ponga la huella desde Yo o ingrese con email y contraseña.
+//
+// También se pide al volver a la app si estuvo más de 5 minutos en segundo
+// plano (como las apps de bancos). Menos que eso no, para no molestar a quien
+// sale un momento a otra app y vuelve.
+const MINUTOS_EN_SEGUNDO_PLANO = 5;
+
 type Sesion = {
   usuario: Usuario | null;
   cargando: boolean; // true mientras se lee la sesión guardada al arrancar
@@ -108,6 +115,38 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       setCargando(false);
     })();
   }, [cerrar, usar]);
+
+  // El listener de AppState se registra una sola vez: lee usuario y
+  // pideHuella por ref para ver siempre el valor actual.
+  const enUso = useRef(false);
+  const pide = useRef(false);
+  const salioEn = useRef<number | null>(null);
+  useEffect(() => {
+    enUso.current = usuario !== null;
+    pide.current = pideHuella;
+  }, [usuario, pideHuella]);
+
+  useEffect(() => {
+    const suscripcion = AppState.addEventListener('change', async (estado) => {
+      if (estado === 'background') {
+        salioEn.current = Date.now();
+        return;
+      }
+      if (estado !== 'active' || salioEn.current === null) return;
+
+      const minutosAfuera = (Date.now() - salioEn.current) / 60_000;
+      salioEn.current = null;
+      if (!enUso.current || !pide.current || minutosAfuera < MINUTOS_EN_SEGUNDO_PLANO) return;
+
+      // Se deja de usar la sesión hasta que ponga la huella; queda guardada.
+      configurarToken(null);
+      setUsuario(null);
+      setBloqueada(true);
+      const guardada = await leerSesion();
+      if (guardada && (await pedirHuella('Confirmá que sos vos para entrar'))) usar(guardada);
+    });
+    return () => suscripcion.remove();
+  }, [usar]);
 
   return (
     <SesionContext.Provider

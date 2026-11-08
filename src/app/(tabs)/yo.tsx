@@ -1,12 +1,14 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Text } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Switch, Text } from 'react-native';
 
 import { Boton } from '@/components/Boton';
 import { Pantalla } from '@/components/Pantalla';
 import { Tarjeta } from '@/components/Tarjeta';
 import { useSesion } from '@/estado/sesion';
 import { obtenerLugaresFavoritos } from '@/servicios/favoritos';
+import { huellaDisponible } from '@/servicios/huella';
+import colores from '@/tema/colores';
 import type { Lugar } from '@/tipos/lugar';
 
 export default function Yo() {
@@ -31,6 +33,12 @@ export default function Yo() {
     }, [sesion.usuario]),
   );
 
+  // La opción de huella solo se ofrece si el teléfono tiene una registrada.
+  const [hayHuella, setHayHuella] = useState(false);
+  useEffect(() => {
+    huellaDisponible().then(setHayHuella);
+  }, []);
+
   // Al cerrar sesión se queda en Yo, que pasa a mostrar el botón de ingresar.
   function cerrarSesion() {
     sesion.cerrar();
@@ -44,7 +52,13 @@ export default function Yo() {
             No hace falta una cuenta para mirar. Ingresá para guardar tus lugares favoritos y tu recorrido.
           </Text>
         </Tarjeta>
-        <Boton titulo="Ingresar" onPress={() => router.push('/login')} />
+        {/* Canceló la huella al abrir: la sesión sigue guardada y puede reintentar. */}
+        {sesion.bloqueada && <Boton titulo="Entrar con huella" onPress={sesion.desbloquear} />}
+        <Boton
+          titulo={sesion.bloqueada ? 'Ingresar con email' : 'Ingresar'}
+          variante={sesion.bloqueada ? 'secundario' : 'primario'}
+          onPress={() => router.push('/login')}
+        />
       </Pantalla>
     );
   }
@@ -55,6 +69,20 @@ export default function Yo() {
         <Text className="text-sm font-semibold uppercase text-texto-suave">Usuario</Text>
         <Text className="text-base text-texto">{sesion.usuario.nombre}</Text>
       </Tarjeta>
+
+      {hayHuella && (
+        <Tarjeta className="flex-row items-center justify-between">
+          <Text className="flex-1 text-base text-texto">Pedir huella al abrir la app</Text>
+          <Switch
+            value={sesion.pideHuella}
+            onValueChange={(pide) => {
+              sesion.cambiarPideHuella(pide);
+            }}
+            trackColor={{ true: colores.primario }}
+            accessibilityLabel="Pedir huella al abrir la app"
+          />
+        </Tarjeta>
+      )}
 
       <Text className="text-sm font-semibold uppercase text-texto-suave">Favoritos</Text>
 

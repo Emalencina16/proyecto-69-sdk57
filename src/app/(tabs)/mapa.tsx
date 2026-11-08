@@ -1,7 +1,8 @@
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 
 import { FiltroCategorias } from '@/components/FiltroCategorias';
@@ -23,6 +24,10 @@ const REGION_COLON: Region = {
   longitudeDelta: 0.12,
 };
 
+// Alturas en las que se frena el panel de lugares, como fracción de la zona
+// del mapa: bajo (asoma el título y una tarjeta), medio y casi completo.
+const ALTURAS_PANEL = [0.25, 0.5, 0.9];
+
 export default function Mapa() {
   const { usuario } = useSesion();
   const [lugares, setLugares] = useState<Lugar[]>([]);
@@ -31,6 +36,8 @@ export default function Mapa() {
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [altoZona, setAltoZona] = useState(0); // alto de la zona del mapa, para mapPadding
+  const [mapaListo, setMapaListo] = useState(false);
 
   // El catálogo es público: se pide una vez, haya sesión o no.
   useEffect(() => {
@@ -92,8 +99,19 @@ export default function Mapa() {
     <View className="flex-1 bg-fondo">
       <FiltroCategorias categorias={categorias} seleccionada={categoriaId} onSeleccionar={setCategoriaId} />
 
-      <View className="h-72 shrink-0 border-b border-borde">
-        <MapView style={StyleSheet.absoluteFill} initialRegion={REGION_COLON}>
+      {/* El mapa ocupa todo lo que queda; el panel de lugares se apoya encima
+          desde abajo. mapPadding corre el centro y el logo de Google para que
+          no queden tapados por el panel cuando está bajo. */}
+      <View className="flex-1" onLayout={(evento) => setAltoZona(evento.nativeEvent.layout.height)}>
+        <MapView
+          style={StyleSheet.absoluteFill}
+          initialRegion={REGION_COLON}
+          onMapReady={() => setMapaListo(true)}
+          // Solo después de onMapReady: antes, react-native-maps en Android se
+          // cae (NullPointerException en applyBaseMapPadding) porque el mapa
+          // de Google todavía no existe.
+          mapPadding={mapaListo ? { top: 0, right: 0, left: 0, bottom: altoZona * ALTURAS_PANEL[0] } : undefined}
+        >
           {lugaresVisibles.map((lugar) => (
             <Marker
               key={lugar.id}
@@ -107,47 +125,62 @@ export default function Mapa() {
             />
           ))}
         </MapView>
-      </View>
 
-      {/* El mapa se muestra igual aunque falle la carga: el estado va acá abajo. */}
-      {cargando ? (
-        <ActivityIndicator size="large" className="mt-6" />
-      ) : error ? (
-        <Text className="px-5 pt-6 text-base text-error">{error}</Text>
-      ) : (
-        <FlatList
-          data={lugaresVisibles}
-          keyExtractor={(lugar) => lugar.id}
-          className="flex-1"
-          contentContainerClassName="gap-3 px-5 py-6"
-          ListEmptyComponent={
-            <Text className="text-base text-texto-suave">No hay lugares en esta categoría.</Text>
-          }
-          renderItem={({ item }) => {
-            const esFavorito = Boolean(favoritoDe(item.id));
-            return (
-              <Tarjeta className="flex-row items-start justify-between">
-                <View className="flex-1 gap-2">
-                  <Text className="text-base font-semibold text-texto">{item.nombre}</Text>
-                  <Text className="text-sm text-texto-suave">{item.descripcionCorta}</Text>
-                </View>
-                <Pressable
-                  onPress={() => alternarFavorito(item.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={esFavorito ? 'Quitar de favoritos' : 'Marcar como favorito'}
-                  className="p-1"
-                >
-                  <Ionicons
-                    name={esFavorito ? 'heart' : 'heart-outline'}
-                    size={22}
-                    color={esFavorito ? colores.error : colores['texto-suave']}
-                  />
-                </Pressable>
-              </Tarjeta>
-            );
-          }}
-        />
-      )}
+        {/* Panel deslizable: arranca bajo (se ve el mapa grande) y se sube
+            arrastrando. El mapa se muestra igual aunque falle la carga: el
+            estado va dentro del panel. */}
+        <BottomSheet
+          snapPoints={ALTURAS_PANEL.map((altura) => `${altura * 100}%`)}
+          index={0}
+          enableDynamicSizing={false}
+          backgroundStyle={{ backgroundColor: colores.superficie }}
+          handleIndicatorStyle={{ backgroundColor: colores.borde, width: 48 }}
+        >
+          <Text className="px-5 pb-2 text-sm font-semibold uppercase text-texto-suave">
+            {cargando ? 'Cargando lugares…' : `${lugaresVisibles.length} lugares`}
+          </Text>
+          {cargando ? (
+            <ActivityIndicator size="large" className="mt-6" />
+          ) : error ? (
+            <Text className="px-5 pt-4 text-base text-error">{error}</Text>
+          ) : (
+            <BottomSheetFlatList
+              data={lugaresVisibles}
+              keyExtractor={(lugar: Lugar) => lugar.id}
+              // Estilo y no className: NativeWind no conoce los componentes del panel.
+              contentContainerStyle={{
+                gap: 12,
+                paddingHorizontal: 20,
+                paddingBottom: 24,
+              }}
+              ListEmptyComponent={<Text className="text-base text-texto-suave">No hay lugares en esta categoría.</Text>}
+              renderItem={({ item }) => {
+                const esFavorito = Boolean(favoritoDe(item.id));
+                return (
+                  <Tarjeta className="flex-row items-start justify-between">
+                    <View className="flex-1 gap-2">
+                      <Text className="text-base font-semibold text-texto">{item.nombre}</Text>
+                      <Text className="text-sm text-texto-suave">{item.descripcionCorta}</Text>
+                    </View>
+                    <Pressable
+                      onPress={() => alternarFavorito(item.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={esFavorito ? 'Quitar de favoritos' : 'Marcar como favorito'}
+                      className="p-1"
+                    >
+                      <Ionicons
+                        name={esFavorito ? 'heart' : 'heart-outline'}
+                        size={22}
+                        color={esFavorito ? colores.error : colores['texto-suave']}
+                      />
+                    </Pressable>
+                  </Tarjeta>
+                );
+              }}
+            />
+          )}
+        </BottomSheet>
+      </View>
     </View>
   );
 }

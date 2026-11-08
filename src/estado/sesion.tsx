@@ -1,3 +1,4 @@
+import { addNetworkStateListener } from 'expo-network';
 import { router } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
@@ -12,6 +13,7 @@ import {
   leerPideHuella,
   leerSesion,
 } from '@/servicios/sesionGuardada';
+import { sincronizarVisitas } from '@/servicios/visitas';
 import type { Sesion as SesionApi } from '@/tipos/api';
 import type { Usuario } from '@/tipos/usuario';
 
@@ -147,6 +149,19 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     });
     return () => suscripcion.remove();
   }, [usar]);
+
+  // Visitas registradas sin señal (servicios/visitas.ts): se suben al entrar
+  // con la sesión y cada vez que vuelve internet.
+  useEffect(() => {
+    if (usuario) sincronizarVisitas();
+  }, [usuario]);
+
+  useEffect(() => {
+    const suscripcion = addNetworkStateListener((estado) => {
+      if (estado.isInternetReachable && enUso.current) sincronizarVisitas();
+    });
+    return () => suscripcion.remove();
+  }, []);
 
   return (
     <SesionContext.Provider

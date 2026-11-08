@@ -45,6 +45,7 @@ example
 # bitácora interna de trabajo, no es parte del entregable
 RESEARCH.md
 PENDIENTES.md
+COMANDOS.md
 CONSULTAS-PRD.md
 
 # IDE
@@ -58,6 +59,8 @@ docs/
 
 # capturas de pantalla sueltas en la raíz
 /*.png
+/*.jpeg
+/*.jpg
 
 # postgres local para levantar la api de la cátedra, no es parte de la app
 docker-compose.yml

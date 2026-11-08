@@ -19,7 +19,7 @@ function formatearTiempo(segundos: number): string {
 type Props = { lugar: Lugar };
 
 export function ReproductorAudioguia({ lugar }: Props) {
-  // Sin audioguía no se muestra nada: el PRD dice "cuando existe".
+  
   if (!lugar.audioguia) return null;
   return (
     <Reproductor
@@ -45,7 +45,7 @@ function Reproductor({ lugarId, nombre, url, duracionInicial }: PropsReproductor
   const [descargando, setDescargando] = useState(false);
   const [errorDescarga, setErrorDescarga] = useState<string | null>(null);
 
-  // El servicio es asíncrono: se consulta si ya hay copia local al montar.
+  
   useEffect(() => {
     let vigente = true;
     obtenerAudioLocal(lugarId, url).then((uri) => {
@@ -56,8 +56,7 @@ function Reproductor({ lugarId, nombre, url, duracionInicial }: PropsReproductor
     };
   }, [lugarId, url]);
 
-  // Terminar una descarga no debe cortar lo que se está escuchando:
-  // la fuente del player solo cambia cuando está en pausa.
+  
   const fuente = uriLocal ?? url;
   const [fuenteActiva, setFuenteActiva] = useState(fuente);
   const [reproduciendo, setReproduciendo] = useState(false);

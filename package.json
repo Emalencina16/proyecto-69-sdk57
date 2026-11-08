@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~57.0.21",
+    "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-vector-icons/ionicons": "^13.1.4",
     "expo": "~57.0.26",
     "expo-audio": "~57.0.5",

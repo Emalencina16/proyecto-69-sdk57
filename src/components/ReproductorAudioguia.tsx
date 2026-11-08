@@ -167,13 +167,17 @@ function Controles({
   const cargando = !estado.isLoaded || estado.isBuffering;
 
   useEffect(() => {
-    if (!estado.isLoaded || arrancado.current) return;
-    arrancado.current = true;
-    const previa = leerPosicion();
-    if (previa > 0) player.seekTo(previa);
+  if (!estado.isLoaded || arrancado.current) return;
+  arrancado.current = true;
+  const previa = leerPosicion();
+  if (previa > 0) player.seekTo(previa);
+  try {
     player.setActiveForLockScreen(true, { title: `Audioguía: ${nombre}`, artist: 'Colón' });
-    player.play();
-  }, [estado.isLoaded, player, nombre, leerPosicion]);
+  } catch (err) {
+    console.warn('No se pudo activar la pantalla de bloqueo', err);
+  }
+  player.play();
+}, [estado.isLoaded, player, nombre, leerPosicion]);
 
   useEffect(() => {
     if (arrancado.current) guardarPosicion(estado.currentTime);
@@ -193,16 +197,20 @@ function Controles({
   }, [player]);
 
   async function alternarReproduccion() {
-    if (estado.playing) {
-      player.pause();
-      return;
-    }
-    if (estado.didJustFinish || estado.currentTime >= total - 0.5) {
-      await player.seekTo(0);
-    }
-    player.setActiveForLockScreen(true, { title: `Audioguía: ${nombre}`, artist: 'Colón' });
-    player.play();
+  if (estado.playing) {
+    player.pause();
+    return;
   }
+  if (estado.didJustFinish || estado.currentTime >= total - 0.5) {
+    await player.seekTo(0);
+  }
+  try {
+    player.setActiveForLockScreen(true, { title: `Audioguía: ${nombre}`, artist: 'Colón' });
+  } catch (err) {
+    console.warn('No se pudo activar la pantalla de bloqueo', err);
+  }
+  player.play();
+}
 
   function moverSegundos(delta: number) {
     player.seekTo(Math.min(Math.max(estado.currentTime + delta, 0), total));

@@ -141,6 +141,9 @@ Para **mirar** lugares, mapa y agenda no hace falta cuenta. La cuenta es para gu
   `archivo`) y después se usa la `url` que devuelve. Se aceptan fotos JPG, PNG o WEBP de hasta
   5 MB, audios M4A, AAC o MP3 de hasta 10 MB y videos MP4 de hasta 30 MB. Un `file://` del
   teléfono no sirve: hay que subirlo antes.
+- **Fotos de lugares:** cualquier persona con sesión puede subir una foto y agregarla a la ficha
+  pública con `POST /lugares/:id/imagenes` y `{ "url": "…" }`. Primero hay que subirla con
+  `POST /archivos`; la respuesta de lugares incluirá la foto para todas las personas.
 - La documentación completa, con ejemplos y los errores de cada endpoint, está en
   <http://localhost:3000/docs>.
 
@@ -238,6 +241,7 @@ Para **mirar** lugares, mapa y agenda no hace falta cuenta. La cuenta es para gu
 | `GET` | `/lugares` | 🌐 | Lugares |
 | `GET` | `/lugares/qr/:codigo` | 🌐 | Lugar de un código QR |
 | `GET` | `/lugares/:id` | 🌐 | Detalle de un lugar |
+| `POST` | `/lugares/:id/imagenes` | 🔒 | Agregar una foto pública a un lugar |
 | `GET` | `/eventos` | 🌐 | Agenda de eventos |
 | `GET` | `/eventos/:id` | 🌐 | Detalle de un evento |
 | `PATCH` | `/eventos/:id/estado` | 🔒 | Suspender, cancelar o reprogramar un evento |

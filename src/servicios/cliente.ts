@@ -1,6 +1,7 @@
 import { API_URL } from '@/config/api';
 import { ErrorServicio, errorDeRed, errorDeServidor } from '@/servicios/errores';
 import type { RespuestaError, RespuestaLista, RespuestaUno } from '@/tipos/api';
+import { fetch as expoFetch } from 'expo/fetch';
 
 // Único lugar que habla con la API de la cátedra. Los servicios piden con
 // pedirLista / pedirUno y reciben `datos` ya sacado del sobre { datos, meta }.
@@ -28,7 +29,8 @@ export async function pedir(ruta: string, opciones: RequestInit = {}): Promise<u
 
   let respuesta: Response;
   try {
-    respuesta = await fetch(`${API_URL}${ruta}`, { ...opciones, headers });
+    const fetchHttp = opciones.body instanceof FormData ? expoFetch : fetch;
+    respuesta = await fetchHttp(`${API_URL}${ruta}`, { ...opciones, headers });
   } catch {
     throw errorDeRed();
   }

@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, type FindOptionsWhere, In, Like, MoreThan, Repository } from 'typeorm';
 import type { Meta } from '../../../contract/api.js';
-import type { ComentarioLugar } from '../../../contract/comentarios.js';
 import type { Lugar } from '../../../contract/types.js';
 import { ErrorApi } from '../../common/errors/error-api.js';
 import { leerInstante } from '../../common/dates/dates.js';
@@ -11,18 +10,11 @@ import { esIdConPrefijo, nuevoId } from '../../common/ids/ids.js';
 import { Reloj } from '../../common/clock/clock.js';
 import { calcularPaginacion } from '../../common/response/pagination.js';
 import { normalizarBusqueda } from '../../common/text/text.js';
-import { VerificadorArchivos } from '../../common/files/file-verifier.js';
-import { UsuarioEntidad } from '../users/user.entity.js';
 import { CategoriasServicio } from '../categories/categories.service.js';
 import type { ListarLugaresDto } from './dto/list-places.dto.js';
-import type { AgregarImagenLugarDto } from './dto/add-place-image.dto.js';
-import type { AgregarComentarioLugarDto } from './dto/add-place-comment.dto.js';
-import type { PaginacionDto } from '../../common/response/pagination.dto.js';
 import type { LugarACargar } from './place-to-load.js';
 import { LugarEntidad } from './place.entity.js';
 import { ImagenLugarEntidad } from './place-image.entity.js';
-import { ComentarioLugarEntidad } from './place-comment.entity.js';
-import { comentarioAContrato } from './place-comment.mapper.js';
 import { aContrato } from './places.mapper.js';
 import { inicioDeTemporada } from './rules/hours.js';
 import {
@@ -39,11 +31,8 @@ export class LugaresServicio {
   constructor(
     @InjectRepository(LugarEntidad) private readonly repo: Repository<LugarEntidad>,
     @InjectRepository(ImagenLugarEntidad) private readonly imagenRepo: Repository<ImagenLugarEntidad>,
-    @InjectRepository(ComentarioLugarEntidad) private readonly comentarioRepo: Repository<ComentarioLugarEntidad>,
-    @InjectRepository(UsuarioEntidad) private readonly usuariosRepo: Repository<UsuarioEntidad>,
     private readonly categorias: CategoriasServicio,
     private readonly reloj: Reloj,
-    private readonly archivos: VerificadorArchivos,
   ) {}
 
   async listar(filtros: ListarLugaresDto): Promise<{ datos: Lugar[]; meta: Meta }> {
@@ -120,65 +109,6 @@ export class LugaresServicio {
     const lugar = await this.buscar(id);
     if (!lugar) throw new ErrorApi('LUGAR_NO_ENCONTRADO');
     return this.conContrato(lugar, this.reloj.ahora());
-  }
-
-  async agregarImagen(id: string, usuarioId: string, { url }: AgregarImagenLugarDto): Promise<Lugar> {
-    const lugar = await this.buscar(id);
-    if (!lugar) throw new ErrorApi('LUGAR_NO_ENCONTRADO');
-    const clave = await this.archivos.claveSubida(url, 'imagen');
-    const ahora = this.reloj.ahora();
-    await this.imagenRepo.insert({
-      id: nuevoId('img'),
-      lugarId: id,
-      usuarioId,
-      clave,
-      creadoEn: ahora,
-    });
-    await this.repo.update({ id }, { actualizadoEn: ahora });
-    lugar.actualizadoEn = ahora;
-    return this.conContrato(lugar, ahora);
-  }
-
-  async listarComentarios(
-    lugarId: string,
-    pedido: PaginacionDto,
-  ): Promise<{ datos: ComentarioLugar[]; meta: Meta }> {
-    if (!(await this.existe(lugarId))) throw new ErrorApi('LUGAR_NO_ENCONTRADO');
-    const { pagina, porPagina, saltar } = calcularPaginacion(pedido);
-    const [filas, total] = await this.comentarioRepo.findAndCount({
-      where: { lugarId },
-      order: { creadoEn: 'DESC', id: 'DESC' },
-      skip: saltar,
-      take: porPagina,
-    });
-    return {
-      datos: filas.map(comentarioAContrato),
-      meta: { total, pagina, porPagina },
-    };
-  }
-
-  async agregarComentario(
-    lugarId: string,
-    usuarioId: string,
-    { texto }: AgregarComentarioLugarDto,
-  ): Promise<ComentarioLugar> {
-    if (!(await this.existe(lugarId))) throw new ErrorApi('LUGAR_NO_ENCONTRADO');
-    const usuario = await this.usuariosRepo.findOne({
-      where: { id: usuarioId },
-      select: { id: true, nombre: true },
-    });
-    if (!usuario) throw new ErrorApi('NO_AUTENTICADO');
-    const comentario = await this.comentarioRepo.save(
-      this.comentarioRepo.create({
-        id: nuevoId('com'),
-        lugarId,
-        usuarioId,
-        autor: usuario.nombre,
-        texto,
-        creadoEn: this.reloj.ahora(),
-      }),
-    );
-    return comentarioAContrato(comentario);
   }
 
   async existe(id: string): Promise<boolean> {

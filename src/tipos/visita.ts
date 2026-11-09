@@ -1,4 +1,4 @@
-export type OrigenVisita = 'qr' | 'gps' | 'manual';
+export type OrigenVisita = "qr" | "gps" | "manual";
 
 export interface Visita {
   id: string;

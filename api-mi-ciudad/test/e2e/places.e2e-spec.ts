@@ -2,6 +2,7 @@ import { crearApp, type AppDePrueba } from '../utilities/create-app.js';
 import { esperarContrato, esperarError } from '../utilities/contract.js';
 import {
   claveDe,
+  conSesion,
   crearCategoria,
   crearLugar,
   MUESTRAS,
@@ -155,6 +156,53 @@ describe('PRD §1 — GET /lugares/:id', () => {
     const id = await crearLugar(ctx, { id: 'lug-mayus' });
     await ctx.http().get(`/lugares/${id}`).expect(200);
     esperarError(await ctx.http().get('/lugares/lug-MAYUS'), 404, 'LUGAR_NO_ENCONTRADO');
+  });
+});
+
+describe('POST /lugares/:id/imagenes — fotos públicas de lugares', () => {
+  let ctx: AppDePrueba;
+  beforeAll(async () => {
+    ctx = await crearApp();
+  });
+  afterAll(() => ctx.cerrar());
+
+  it('un turista con sesión agrega una foto que queda visible en el detalle y el catálogo', async () => {
+    const { token } = await registrarTurista(ctx);
+    const id = await crearLugar(ctx);
+    const url = await subirArchivo(ctx, token, MUESTRAS.jpg(), 'foto.jpg');
+
+    const agregada = await ctx
+      .http()
+      .post(`/lugares/${id}/imagenes`)
+      .set(conSesion(token))
+      .send({ url })
+      .expect(201);
+    esperarContrato(agregada.body, 'Lugar');
+    expect(agregada.body.datos.imagenes).toContain(url);
+
+    const detalle = await ctx.http().get(`/lugares/${id}`).expect(200);
+    expect(detalle.body.datos.imagenes).toContain(url);
+    const lista = await ctx.http().get('/lugares?porPagina=500').expect(200);
+    expect(lista.body.datos.find((lugar: { id: string }) => lugar.id === id).imagenes).toContain(url);
+  });
+
+  it('requiere sesión', async () => {
+    const id = await crearLugar(ctx);
+    await ctx.http().post(`/lugares/${id}/imagenes`).send({ url: 'https://ejemplo.ar/foto.jpg' }).expect(401);
+  });
+
+  it('rechaza una imagen que no fue subida a la API', async () => {
+    const { token } = await registrarTurista(ctx);
+    const id = await crearLugar(ctx);
+    esperarError(
+      await ctx
+        .http()
+        .post(`/lugares/${id}/imagenes`)
+        .set(conSesion(token))
+        .send({ url: 'https://ejemplo.ar/foto.jpg' }),
+      422,
+      'ARCHIVO_NO_SUBIDO',
+    );
   });
 });
 

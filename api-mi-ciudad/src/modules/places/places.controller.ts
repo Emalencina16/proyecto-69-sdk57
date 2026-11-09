@@ -1,12 +1,13 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiExcludeEndpoint, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { RespuestaLista, RespuestaUno } from '../../../contract/api.js';
 import type { Lugar } from '../../../contract/types.js';
-import { Publico } from '../../common/auth/decorators.js';
+import { Publico, UsuarioActual, type UsuarioAutenticado } from '../../common/auth/decorators.js';
 import { ErrorApi } from '../../common/errors/error-api.js';
 import { respuestaLista, respuestaUno } from '../../common/response/response.js';
 import { EJEMPLO_LUGAR, ejemploError } from '../../common/swagger/examples.js';
 import { ListarLugaresDto } from './dto/list-places.dto.js';
+import { AgregarImagenLugarDto } from './dto/add-place-image.dto.js';
 import { LugaresServicio } from './places.service.js';
 
 @ApiTags('Catálogo')
@@ -78,5 +79,34 @@ export class LugaresControlador {
   })
   async detalle(@Param('id') id: string): Promise<RespuestaUno<Lugar>> {
     return respuestaUno(await this.lugares.detalle(id));
+  }
+
+  @Post(':id/imagenes')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Agregar una foto a un lugar',
+    description:
+      'Con sesión. La URL tiene que ser de una imagen cargada previamente con `POST /archivos`. ' +
+      'La foto se agrega a la ficha pública del lugar y queda visible para todas las personas.',
+  })
+  @ApiParam({ name: 'id', example: 'lug-004' })
+  @ApiResponse({ status: 201, schema: { example: { datos: EJEMPLO_LUGAR, meta: null } } })
+  @ApiResponse({ status: 401, description: 'NO_AUTENTICADO', schema: ejemploError('NO_AUTENTICADO') })
+  @ApiResponse({
+    status: 404,
+    description: 'LUGAR_NO_ENCONTRADO',
+    schema: ejemploError('LUGAR_NO_ENCONTRADO'),
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'ARCHIVO_NO_SUBIDO',
+    schema: ejemploError('ARCHIVO_NO_SUBIDO'),
+  })
+  async agregarImagen(
+    @Param('id') id: string,
+    @UsuarioActual() usuario: UsuarioAutenticado,
+    @Body() dto: AgregarImagenLugarDto,
+  ): Promise<RespuestaUno<Lugar>> {
+    return respuestaUno(await this.lugares.agregarImagen(id, usuario.id, dto));
   }
 }

@@ -1,4 +1,7 @@
+import { File } from 'expo-file-system';
+
 import { pedirLista, pedirUno } from '@/servicios/cliente';
+import type { ArchivoSubido } from '@/tipos/api';
 import type { Lugar } from '@/tipos/lugar';
 
 export interface FiltrosLugares {
@@ -24,4 +27,21 @@ export async function obtenerLugares(filtros: FiltrosLugares = {}): Promise<Luga
 // como ErrorServicio.
 export async function obtenerLugar(id: string): Promise<Lugar> {
   return pedirUno<Lugar>(`/lugares/${encodeURIComponent(id)}`);
+}
+
+export async function agregarImagenLugar(lugarId: string, uri: string): Promise<Lugar> {
+  const archivo = new File(uri);
+  const formulario = new FormData();
+  formulario.append('archivo', archivo);
+
+  const subida = await pedirUno<ArchivoSubido>('/archivos', {
+    method: 'POST',
+    body: formulario,
+  });
+
+  return pedirUno<Lugar>(`/lugares/${encodeURIComponent(lugarId)}/imagenes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: subida.url }),
+  });
 }

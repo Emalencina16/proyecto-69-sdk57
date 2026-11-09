@@ -1,5 +1,6 @@
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { router } from 'expo-router';
+import * as Location from 'expo-location';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native';
 
@@ -7,7 +8,9 @@ import { FiltroCategorias } from '@/components/FiltroCategorias';
 import { Tarjeta } from '@/components/Tarjeta';
 import { obtenerCategorias } from '@/servicios/categorias';
 import { obtenerLugares } from '@/servicios/lugares';
+import { distanciaEntre } from '@/utilidades/distancia';
 import type { Categoria } from '@/tipos/categoria';
+import type { Coordenadas } from '@/tipos/coordenadas';
 import type { Lugar } from '@/tipos/lugar';
 import colores from '@/tema/colores';
 
@@ -20,6 +23,8 @@ export default function Lugares() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
+  const [ubicacionUsuario, setUbicacionUsuario] = useState<Coordenadas | null>(null);
+  const [errorUbicacion, setErrorUbicacion] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,16 +38,63 @@ export default function Lugares() {
       .finally(() => setCargando(false));
   }, []);
 
+  useEffect(() => {
+    let vigente = true;
+
+    async function cargarUbicacion() {
+      try {
+        const permiso = await Location.requestForegroundPermissionsAsync();
+        if (!permiso.granted) {
+          if (vigente) setErrorUbicacion('Permití el acceso a tu ubicación para ordenar los lugares por cercanía.');
+          return;
+        }
+
+        const ubicacion = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (vigente) {
+          setUbicacionUsuario({
+            latitud: ubicacion.coords.latitude,
+            longitud: ubicacion.coords.longitude,
+          });
+        }
+      } catch (e) {
+        if (vigente) {
+          setErrorUbicacion(
+            e instanceof Error ? `No se pudo obtener tu ubicación: ${e.message}` : 'No se pudo obtener tu ubicación.',
+          );
+        }
+      }
+    }
+
+    void cargarUbicacion();
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
   const lugaresVisibles = useMemo(() => {
     const termino = normalizar(busqueda.trim());
-    return lugares.filter((lugar) => {
+    const filtrados = lugares.filter((lugar) => {
       const coincideCategoria = categoriaId === null || lugar.categoriaId === categoriaId;
       const coincideBusqueda =
         termino.length === 0 ||
         normalizar(`${lugar.nombre} ${lugar.descripcionCorta} ${lugar.direccion}`).includes(termino);
       return coincideCategoria && coincideBusqueda;
     });
-  }, [busqueda, categoriaId, lugares]);
+    if (!ubicacionUsuario) return filtrados;
+
+    return filtrados
+      .map((lugar, indice) => ({
+        lugar,
+        indice,
+        distancia: distanciaEntre(ubicacionUsuario, lugar.coordenadas),
+      }))
+      .sort((a, b) => {
+        if (a.distancia === null) return b.distancia === null ? a.indice - b.indice : 1;
+        if (b.distancia === null) return -1;
+        return a.distancia - b.distancia || a.indice - b.indice;
+      })
+      .map(({ lugar }) => lugar);
+  }, [busqueda, categoriaId, lugares, ubicacionUsuario]);
 
   return (
     <View className="flex-1 bg-fondo">
@@ -60,6 +112,12 @@ export default function Lugares() {
           className="flex-1 py-3 text-base text-texto"
         />
       </View>
+
+      {errorUbicacion ? (
+        <Text accessibilityRole="alert" className="px-5 pt-3 text-sm text-error">
+          {errorUbicacion}
+        </Text>
+      ) : null}
 
       {cargando ? (
         <ActivityIndicator size="large" className="mt-8" />

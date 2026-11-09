@@ -50,6 +50,12 @@
         }
       ],
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Mi Ciudad usa tu ubicación para ordenar los lugares por cercanía."
+        }
+      ],
+      [
         "expo-audio",
         {
           "enableBackgroundPlayback": true

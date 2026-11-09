@@ -206,6 +206,65 @@ describe('POST /lugares/:id/imagenes — fotos públicas de lugares', () => {
   });
 });
 
+describe('/lugares/:id/comentarios — comentarios públicos de lugares', () => {
+  let ctx: AppDePrueba;
+  beforeAll(async () => {
+    ctx = await crearApp();
+  });
+  afterAll(() => ctx.cerrar());
+
+  it('un turista con sesión publica un comentario que queda visible para todas las personas', async () => {
+    const sesion = await registrarTurista(ctx, { nombre: 'Turista comentarista' });
+    const lugarId = await crearLugar(ctx);
+
+    const creado = await ctx
+      .http()
+      .post(`/lugares/${lugarId}/comentarios`)
+      .set(conSesion(sesion.token))
+      .send({ texto: '  Un lugar hermoso para visitar.  ' })
+      .expect(201);
+    expect(creado.body.datos).toMatchObject({
+      lugarId,
+      usuarioId: sesion.usuario.id,
+      autor: 'Turista comentarista',
+      texto: 'Un lugar hermoso para visitar.',
+      creadoEn: '2026-11-14T12:00:00-03:00',
+    });
+    expect(creado.body.datos.id).toMatch(/^com-/);
+
+    const lista = await ctx.http().get(`/lugares/${lugarId}/comentarios`).expect(200);
+    expect(lista.body).toMatchObject({
+      datos: [creado.body.datos],
+      meta: { total: 1, pagina: 1, porPagina: 20 },
+    });
+  });
+
+  it('leer comentarios es público', async () => {
+    const lugarId = await crearLugar(ctx);
+    await ctx.http().get(`/lugares/${lugarId}/comentarios`).expect(200);
+  });
+
+  it('publicar requiere sesión', async () => {
+    const lugarId = await crearLugar(ctx);
+    await ctx.http().post(`/lugares/${lugarId}/comentarios`).send({ texto: 'Muy lindo.' }).expect(401);
+  });
+
+  it.each(['', '   ', 'x'.repeat(501)])('rechaza texto vacío o mayor a 500 caracteres', async (texto) => {
+    const sesion = await registrarTurista(ctx);
+    const lugarId = await crearLugar(ctx);
+    await ctx
+      .http()
+      .post(`/lugares/${lugarId}/comentarios`)
+      .set(conSesion(sesion.token))
+      .send({ texto })
+      .expect(400);
+  });
+
+  it('usa LUGAR_NO_ENCONTRADO para un lugar inexistente', async () => {
+    esperarError(await ctx.http().get('/lugares/lug-noexiste/comentarios'), 404, 'LUGAR_NO_ENCONTRADO');
+  });
+});
+
 describe('R3 / D1 — Los horarios que se devuelven son los de la temporada vigente', () => {
   let ctx: AppDePrueba;
   let id: string;

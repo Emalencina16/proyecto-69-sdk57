@@ -61,6 +61,10 @@ export async function pedirLista<T>(ruta: string, opciones?: RequestInit): Promi
   return datos;
 }
 
+export async function pedirPagina<T>(ruta: string, opciones?: RequestInit): Promise<RespuestaLista<T>> {
+  return (await pedir(ruta, opciones)) as RespuestaLista<T>;
+}
+
 export async function pedirUno<T>(ruta: string, opciones?: RequestInit): Promise<T> {
   const { datos } = (await pedir(ruta, opciones)) as RespuestaUno<T>;
   return datos;

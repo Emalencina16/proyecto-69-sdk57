@@ -42,6 +42,14 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Mi Ciudad necesita acceder a tus fotos para agregarlas a los lugares.",
+          "cameraPermission": "Mi Ciudad necesita acceder a la cámara para tomar fotos.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-audio",
         {
           "enableBackgroundPlayback": true

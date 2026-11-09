@@ -14,17 +14,27 @@ export default function TabsLayout() {
       screenOptions={{
         tabBarActiveTintColor: colores.primario,
         tabBarInactiveTintColor: colores['texto-suave'],
-        tabBarStyle: { backgroundColor: colores.superficie, borderTopColor: colores.borde },
-        headerStyle: { backgroundColor: colores.superficie },
-        headerTintColor: colores.texto,
-        headerTitleStyle: { fontWeight: '700' },
-        headerShadowVisible: false,
+        tabBarStyle: {
+          backgroundColor: colores.superficie,
+          borderTopColor: colores.borde,
+          borderTopWidth: 1,
+          elevation: 10,
+        },
+        tabBarLabelStyle: { fontWeight: '600', fontSize: 11 },
+        headerShown: false,
         sceneStyle: { backgroundColor: colores.fondo },
       }}
     >
       <Tabs.Screen
         name="mapa"
         options={{ title: 'Mapa', tabBarIcon: icono({ ios: 'map', android: 'map', web: 'map' }) }}
+      />
+      <Tabs.Screen
+        name="lugares"
+        options={{
+          title: 'Lugares',
+          tabBarIcon: icono({ ios: 'mappin.and.ellipse', android: 'place', web: 'place' }),
+        }}
       />
       <Tabs.Screen
         name="agenda"

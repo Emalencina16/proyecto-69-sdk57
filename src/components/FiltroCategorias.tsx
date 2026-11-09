@@ -62,10 +62,13 @@ function Chip({ nombre, icono, color, activo, onPress }: PropsChip) {
       accessibilityState={{ selected: activo }}
       className="min-h-12 flex-row items-center gap-2 rounded-full border-2 px-4 active:opacity-80"
       // Color dinámico por categoría: no se puede con clases de Tailwind.
-      style={{ borderColor: color, backgroundColor: activo ? color : colores.superficie }}
+      style={{
+        borderColor: activo ? colores.primario : color,
+        backgroundColor: activo ? colores.primario : colores.superficie,
+      }}
     >
       <Ionicons name={icono} size={20} color={activo ? '#ffffff' : color} />
-      <Text className={`text-base font-semibold ${activo ? 'text-white' : 'text-texto'}`}>{nombre}</Text>
+      <Text className={`text-sm font-bold ${activo ? 'text-white' : 'text-texto'}`}>{nombre}</Text>
     </Pressable>
   );
 }

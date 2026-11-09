@@ -9,7 +9,7 @@ import { actualizadoEnVigente, horariosVigentes } from './rules/hours.js';
  * Necesita "ahora" porque los horarios son los de la temporada vigente (R3, D1).
  * Nada de distancias ni "abierto ahora" (R4): eso lo calcula el teléfono.
  */
-export function aContrato(l: LugarEntidad, ahora: Date): Lugar {
+export function aContrato(l: LugarEntidad, ahora: Date, imagenesAdicionales: string[] = []): Lugar {
   return {
     id: l.id,
     nombre: l.nombre,
@@ -18,7 +18,7 @@ export function aContrato(l: LugarEntidad, ahora: Date): Lugar {
     descripcion: l.descripcion,
     coordenadas: { latitud: l.latitud, longitud: l.longitud },
     direccion: l.direccion,
-    imagenes: l.imagenes.map(urlDeArchivo),
+    imagenes: [...l.imagenes, ...imagenesAdicionales].map(urlDeArchivo),
     horarios: horariosVigentes(l.horarios, ahora),
     telefono: l.telefono,
     sitioWeb: l.sitioWeb,

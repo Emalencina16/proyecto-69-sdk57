@@ -1,8 +1,4 @@
-import { File } from 'expo-file-system';
-
-import { pedirLista, pedirPagina, pedirUno } from '@/servicios/cliente';
-import type { ArchivoSubido, RespuestaLista } from '@/tipos/api';
-import type { ComentarioLugar } from '@/tipos/comentario';
+import { pedirLista, pedirUno } from '@/servicios/cliente';
 import type { Lugar } from '@/tipos/lugar';
 
 export interface FiltrosLugares {
@@ -28,34 +24,4 @@ export async function obtenerLugares(filtros: FiltrosLugares = {}): Promise<Luga
 // como ErrorServicio.
 export async function obtenerLugar(id: string): Promise<Lugar> {
   return pedirUno<Lugar>(`/lugares/${encodeURIComponent(id)}`);
-}
-
-export async function obtenerComentariosLugar(id: string, pagina = 1): Promise<RespuestaLista<ComentarioLugar>> {
-  const params = new URLSearchParams({ pagina: String(pagina), porPagina: '20' });
-  return pedirPagina<ComentarioLugar>(`/lugares/${encodeURIComponent(id)}/comentarios?${params}`);
-}
-
-export async function agregarComentarioLugar(id: string, texto: string): Promise<ComentarioLugar> {
-  return pedirUno<ComentarioLugar>(`/lugares/${encodeURIComponent(id)}/comentarios`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ texto }),
-  });
-}
-
-export async function agregarImagenLugar(lugarId: string, uri: string): Promise<Lugar> {
-  const archivo = new File(uri);
-  const formulario = new FormData();
-  formulario.append('archivo', archivo);
-
-  const subida = await pedirUno<ArchivoSubido>('/archivos', {
-    method: 'POST',
-    body: formulario,
-  });
-
-  return pedirUno<Lugar>(`/lugares/${encodeURIComponent(lugarId)}/imagenes`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: subida.url }),
-  });
 }

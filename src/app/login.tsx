@@ -36,14 +36,14 @@ export default function Login() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-fondo">
+    <SafeAreaView className="flex-1 bg-fondo" edges={['bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-center px-6"
       >
-        <View className="mb-8 gap-1">
-          <Text className="text-center text-3xl font-bold text-primario">Mi Ciudad Colón</Text>
-          <Text className="text-center text-base text-texto-suave">Ingresá para guardar tus favoritos y tu recorrido</Text>
+        <View className="mb-8 gap-2 rounded-2xl border border-borde bg-superficie px-5 py-7">
+          <Text className="text-center text-2xl font-bold text-texto">Ingresá a tu cuenta</Text>
+          <Text className="text-center text-base text-texto-suave">Guardá tus favoritos y tu recorrido</Text>
         </View>
 
         <View className="gap-4">

@@ -16,11 +16,11 @@ export function Boton({ titulo, onPress, variante = 'primario', deshabilitado = 
       onPress={onPress}
       disabled={deshabilitado}
       testID={testID}
-      className={`items-center rounded-lg px-4 py-3 active:opacity-80 ${
+      className={`min-h-12 items-center justify-center rounded-xl px-5 active:opacity-80 ${
         esPrimario ? 'bg-primario' : 'border border-borde bg-superficie'
       } ${deshabilitado ? 'opacity-50' : ''}`}
     >
-      <Text className={`text-base font-semibold ${esPrimario ? 'text-white' : 'text-texto'}`}>{titulo}</Text>
+      <Text className={`text-base font-bold ${esPrimario ? 'text-white' : 'text-primario'}`}>{titulo}</Text>
     </Pressable>
   );
 }

@@ -133,7 +133,11 @@ export default function Mapa() {
           snapPoints={ALTURAS_PANEL.map((altura) => `${altura * 100}%`)}
           index={0}
           enableDynamicSizing={false}
-          backgroundStyle={{ backgroundColor: colores.superficie }}
+          backgroundStyle={{
+            backgroundColor: colores.superficie,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+          }}
           handleIndicatorStyle={{ backgroundColor: colores.borde, width: 48 }}
         >
           <Text className="px-5 pb-2 text-sm font-semibold uppercase text-texto-suave">

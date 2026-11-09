@@ -1,14 +1,14 @@
-// Paleta provisoria. Es la única fuente de colores de la app:
+// Paleta institucional inspirada en la identidad visual de Colón:
 // la usa tailwind.config.js (clases como bg-primario, text-texto-suave)
 // y también el código que necesita el valor en JS (tabs, placeholders).
-// Cuando definamos la paleta final, alcanza con cambiar este archivo.
 module.exports = {
-  primario: '#2563eb',
-  'primario-oscuro': '#1d4ed8',
-  fondo: '#f8fafc',
+  primario: '#3043a0',
+  'primario-oscuro': '#12245f',
+  'primario-claro': '#e5edff',
+  fondo: '#eef5ff',
   superficie: '#ffffff',
-  borde: '#e2e8f0',
-  texto: '#0f172a',
-  'texto-suave': '#64748b',
+  borde: '#d9e4f2',
+  texto: '#17264a',
+  'texto-suave': '#71809a',
   error: '#dc2626',
 };

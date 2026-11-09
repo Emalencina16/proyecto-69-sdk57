@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { RespuestaLista, RespuestaUno } from '../../../contract/api.js';
+import type { ComentarioLugar } from '../../../contract/comentarios.js';
 import type { Lugar } from '../../../contract/types.js';
 import { Publico, UsuarioActual, type UsuarioAutenticado } from '../../common/auth/decorators.js';
 import { ErrorApi } from '../../common/errors/error-api.js';
@@ -8,6 +9,8 @@ import { respuestaLista, respuestaUno } from '../../common/response/response.js'
 import { EJEMPLO_LUGAR, ejemploError } from '../../common/swagger/examples.js';
 import { ListarLugaresDto } from './dto/list-places.dto.js';
 import { AgregarImagenLugarDto } from './dto/add-place-image.dto.js';
+import { AgregarComentarioLugarDto } from './dto/add-place-comment.dto.js';
+import { PaginacionDto } from '../../common/response/pagination.dto.js';
 import { LugaresServicio } from './places.service.js';
 
 @ApiTags('Catálogo')
@@ -79,6 +82,82 @@ export class LugaresControlador {
   })
   async detalle(@Param('id') id: string): Promise<RespuestaUno<Lugar>> {
     return respuestaUno(await this.lugares.detalle(id));
+  }
+
+  @Publico()
+  @Get(':id/comentarios')
+  @ApiOperation({
+    summary: 'Comentarios de un lugar',
+    description: 'Público. Del más nuevo al más antiguo; admite paginación.',
+  })
+  @ApiParam({ name: 'id', example: 'lug-004' })
+  @ApiResponse({
+    status: 200,
+    schema: {
+      example: {
+        datos: [
+          {
+            id: 'com-abc123def456',
+            lugarId: 'lug-004',
+            usuarioId: 'usr-201',
+            autor: 'Turista',
+            texto: 'Un lugar hermoso para visitar.',
+            creadoEn: '2026-11-14T17:42:00-03:00',
+          },
+        ],
+        meta: { total: 1, pagina: 1, porPagina: 20 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'LUGAR_NO_ENCONTRADO',
+    schema: ejemploError('LUGAR_NO_ENCONTRADO'),
+  })
+  async listarComentarios(
+    @Param('id') id: string,
+    @Query() consulta: PaginacionDto,
+  ): Promise<RespuestaLista<ComentarioLugar>> {
+    const { datos, meta } = await this.lugares.listarComentarios(id, consulta);
+    return respuestaLista(datos, meta);
+  }
+
+  @Post(':id/comentarios')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Agregar un comentario a un lugar',
+    description: 'Con sesión. El comentario se muestra públicamente en el detalle del lugar.',
+  })
+  @ApiParam({ name: 'id', example: 'lug-004' })
+  @ApiResponse({
+    status: 201,
+    schema: {
+      example: {
+        datos: {
+          id: 'com-abc123def456',
+          lugarId: 'lug-004',
+          usuarioId: 'usr-201',
+          autor: 'Turista',
+          texto: 'Un lugar hermoso para visitar.',
+          creadoEn: '2026-11-14T17:42:00-03:00',
+        },
+        meta: null,
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'VALIDACION_FALLIDA', schema: ejemploError('VALIDACION_FALLIDA') })
+  @ApiResponse({ status: 401, description: 'NO_AUTENTICADO', schema: ejemploError('NO_AUTENTICADO') })
+  @ApiResponse({
+    status: 404,
+    description: 'LUGAR_NO_ENCONTRADO',
+    schema: ejemploError('LUGAR_NO_ENCONTRADO'),
+  })
+  async agregarComentario(
+    @Param('id') id: string,
+    @UsuarioActual() usuario: UsuarioAutenticado,
+    @Body() dto: AgregarComentarioLugarDto,
+  ): Promise<RespuestaUno<ComentarioLugar>> {
+    return respuestaUno(await this.lugares.agregarComentario(id, usuario.id, dto));
   }
 
   @Post(':id/imagenes')

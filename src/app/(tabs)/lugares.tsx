@@ -48,7 +48,7 @@ export default function Lugares() {
     <View className="flex-1 bg-fondo">
       <FiltroCategorias categorias={categorias} seleccionada={categoriaId} onSeleccionar={setCategoriaId} />
 
-      <View className="flex-row items-center gap-2 mx-5 mt-4 rounded-lg border border-borde bg-superficie px-3">
+      <View className="mx-5 mt-4 flex-row items-center gap-2 rounded-xl border border-borde bg-superficie px-4">
         <Ionicons name="search" size={20} color={colores['texto-suave']} />
         <TextInput
           value={busqueda}

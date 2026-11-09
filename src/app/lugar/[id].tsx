@@ -3,15 +3,20 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { ReproductorAudioguia } from '@/components/ReproductorAudioguia';
 import { Tarjeta } from '@/components/Tarjeta';
 import { obtenerCategorias } from '@/servicios/categorias';
-import { agregarImagenLugar, obtenerLugar } from '@/servicios/lugares';
+import {
+  agregarComentarioLugar,
+  agregarImagenLugar,
+  obtenerComentariosLugar,
+  obtenerLugar,
+} from '@/servicios/lugares';
 import { useSesion } from '@/estado/sesion';
 import type { Categoria } from '@/tipos/categoria';
+import type { ComentarioLugar } from '@/tipos/comentario';
 import type { Lugar as LugarTipo } from '@/tipos/lugar';
 import colores from '@/tema/colores';
 
@@ -26,8 +31,19 @@ export default function DetalleLugar() {
     categorias: Categoria[];
     error: string | null;
   } | null>(null);
+  const [resultadoComentarios, setResultadoComentarios] = useState<{
+    id: string;
+    comentarios: ComentarioLugar[];
+    pagina: number;
+    total: number;
+    error: string | null;
+  } | null>(null);
   const [subiendoImagen, setSubiendoImagen] = useState(false);
   const [errorImagen, setErrorImagen] = useState<string | null>(null);
+  const [textoComentario, setTextoComentario] = useState('');
+  const [publicandoComentario, setPublicandoComentario] = useState(false);
+  const [cargandoMasComentarios, setCargandoMasComentarios] = useState(false);
+  const [errorComentario, setErrorComentario] = useState<string | null>(null);
 
   useEffect(() => {
     let vigente = true;
@@ -52,10 +68,39 @@ export default function DetalleLugar() {
     };
   }, [id]);
 
+  useEffect(() => {
+    let vigente = true;
+    obtenerComentariosLugar(id)
+      .then(({ datos, meta }) => {
+        if (vigente) {
+          setResultadoComentarios({ id, comentarios: datos, pagina: meta.pagina, total: meta.total, error: null });
+        }
+      })
+      .catch((e) => {
+        if (vigente) {
+          setResultadoComentarios({
+            id,
+            comentarios: [],
+            pagina: 1,
+            total: 0,
+            error: e instanceof Error ? e.message : 'No se pudieron cargar los comentarios.',
+          });
+        }
+      });
+
+    return () => {
+      vigente = false;
+    };
+  }, [id]);
+
   const cargando = resultado?.id !== id;
   const lugar = resultado?.id === id ? resultado.lugar : null;
   const categorias = resultado?.id === id ? resultado.categorias : [];
   const error = resultado?.id === id ? resultado.error : null;
+  const comentariosCargando = resultadoComentarios?.id !== id;
+  const comentarios = resultadoComentarios?.id === id ? resultadoComentarios.comentarios : [];
+  const totalComentarios = resultadoComentarios?.id === id ? resultadoComentarios.total : 0;
+  const errorCargaComentarios = resultadoComentarios?.id === id ? resultadoComentarios.error : null;
   const categoria = categorias.find((actual) => actual.id === lugar?.categoriaId);
 
   async function seleccionarFoto(origen: 'camara' | 'galeria') {
@@ -102,20 +147,63 @@ export default function DetalleLugar() {
     }
   }
 
-  return (
-    <SafeAreaView className="flex-1 bg-fondo" edges={['top']}>
-      <View className="flex-row items-center gap-3 border-b border-borde bg-superficie px-4 py-3">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Volver a lugares"
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/lugares'))}
-          className="min-h-11 min-w-11 items-center justify-center"
-        >
-          <Ionicons name="arrow-back" size={24} color={colores.texto} />
-        </Pressable>
-        <Text className="text-lg font-bold text-texto">Detalle del lugar</Text>
-      </View>
+  async function publicarComentario() {
+    if (!usuario) {
+      router.push('/login');
+      return;
+    }
+    const texto = textoComentario.trim();
+    if (!texto || publicandoComentario) return;
 
+    setPublicandoComentario(true);
+    setErrorComentario(null);
+    try {
+      const comentario = await agregarComentarioLugar(id, texto);
+      setTextoComentario('');
+      setResultadoComentarios((actual) =>
+        actual?.id === id
+          ? { ...actual, comentarios: [comentario, ...actual.comentarios], total: actual.total + 1, error: null }
+          : actual,
+      );
+    } catch (e) {
+      setErrorComentario(e instanceof Error ? e.message : 'No se pudo publicar el comentario.');
+    } finally {
+      setPublicandoComentario(false);
+    }
+  }
+
+  async function cargarMasComentarios() {
+    const actual = resultadoComentarios;
+    if (!actual || actual.id !== id || cargandoMasComentarios || actual.comentarios.length >= actual.total) return;
+
+    setCargandoMasComentarios(true);
+    setErrorComentario(null);
+    try {
+      const siguiente = await obtenerComentariosLugar(id, actual.pagina + 1);
+      setResultadoComentarios((estado) =>
+        estado?.id === id
+          ? {
+              ...estado,
+              comentarios: [
+                ...estado.comentarios,
+                ...siguiente.datos.filter(
+                  (comentario) => !estado.comentarios.some((existente) => existente.id === comentario.id),
+                ),
+              ],
+              pagina: siguiente.meta.pagina,
+              total: siguiente.meta.total,
+            }
+          : estado,
+      );
+    } catch (e) {
+      setErrorComentario(e instanceof Error ? e.message : 'No se pudieron cargar más comentarios.');
+    } finally {
+      setCargandoMasComentarios(false);
+    }
+  }
+
+  return (
+    <View className="flex-1 bg-fondo">
       {cargando ? (
         <ActivityIndicator size="large" className="mt-8" />
       ) : error || !lugar ? (
@@ -202,12 +290,103 @@ export default function DetalleLugar() {
               <Text className="text-sm text-texto-suave">No informados</Text>
             )}
           </Tarjeta>
+          <View className="gap-3">
+            <Text className="text-lg font-bold text-texto">Comentarios ({totalComentarios})</Text>
+            {usuario ? (
+              <View className="gap-2">
+                <TextInput
+                  accessibilityLabel="Escribí un comentario"
+                  value={textoComentario}
+                  onChangeText={setTextoComentario}
+                  placeholder="¿Qué te pareció este lugar?"
+                  placeholderTextColor={colores['texto-suave']}
+                  maxLength={500}
+                  multiline
+                  textAlignVertical="top"
+                  editable={!publicandoComentario}
+                  className="min-h-24 rounded-xl border border-borde bg-superficie p-4 text-base text-texto"
+                />
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-xs text-texto-suave">{textoComentario.length}/500</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={publicarComentario}
+                    disabled={!textoComentario.trim() || publicandoComentario}
+                    className={`min-h-11 flex-row items-center justify-center gap-2 rounded-lg bg-primario px-4 ${
+                      !textoComentario.trim() || publicandoComentario ? 'opacity-50' : 'active:opacity-80'
+                    }`}
+                  >
+                    {publicandoComentario ? <ActivityIndicator size="small" color={colores.superficie} /> : null}
+                    <Text className="font-semibold text-white">
+                      {publicandoComentario ? 'Publicando…' : 'Publicar'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push('/login')}
+                className="rounded-lg border border-borde bg-superficie p-4"
+              >
+                <Text className="text-sm font-semibold text-primario">Ingresá para dejar un comentario</Text>
+              </Pressable>
+            )}
+
+            {errorComentario ? (
+              <Text accessibilityRole="alert" className="text-sm text-error">
+                {errorComentario}
+              </Text>
+            ) : null}
+            {comentariosCargando ? (
+              <ActivityIndicator size="small" className="my-3" color={colores.primario} />
+            ) : errorCargaComentarios ? (
+              <Text accessibilityRole="alert" className="text-sm text-error">
+                {errorCargaComentarios}
+              </Text>
+            ) : comentarios.length === 0 ? (
+              <Text className="text-sm text-texto-suave">Todavía no hay comentarios. Dejá el primero.</Text>
+            ) : (
+              <View className="gap-2">
+                {comentarios.map((comentario) => (
+                  <Tarjeta key={comentario.id}>
+                    <View className="flex-row items-center justify-between gap-2">
+                      <Text className="flex-1 text-sm font-semibold text-texto">{comentario.autor}</Text>
+                      <Text className="text-xs text-texto-suave">{fechaComentario(comentario.creadoEn)}</Text>
+                    </View>
+                    <Text className="text-sm leading-5 text-texto">{comentario.texto}</Text>
+                  </Tarjeta>
+                ))}
+                {comentarios.length < totalComentarios ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={cargarMasComentarios}
+                    disabled={cargandoMasComentarios}
+                    className="min-h-11 items-center justify-center"
+                  >
+                    {cargandoMasComentarios ? (
+                      <ActivityIndicator size="small" color={colores.primario} />
+                    ) : (
+                      <Text className="font-semibold text-primario">Ver comentarios anteriores</Text>
+                    )}
+                  </Pressable>
+                ) : null}
+              </View>
+            )}
+          </View>
           {lugar.codigoQr ? <DatoDetalle etiqueta="Código QR" valor={lugar.codigoQr} /> : null}
           <ReproductorAudioguia lugar={lugar} />
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
+}
+
+function fechaComentario(fecha: string): string {
+  const instante = new Date(fecha);
+  return Number.isNaN(instante.getTime())
+    ? fecha
+    : instante.toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 function AccionFoto({

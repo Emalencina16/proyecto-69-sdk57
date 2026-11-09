@@ -35,7 +35,7 @@ export function FiltroCategorias({ categorias, seleccionada, onSeleccionar }: Pr
         <Chip
           key={categoria.id}
           nombre={categoria.nombre}
-          // El dato viene como string; el nombre lo cargamos nosotros (ver db.json).
+          // El dato viene como string desde la API; tiene que ser un nombre de Ionicons.
           icono={categoria.icono as NombreIcono}
           color={categoria.color}
           activo={seleccionada === categoria.id}

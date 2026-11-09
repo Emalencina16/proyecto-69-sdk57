@@ -60,7 +60,12 @@ docs/
 
 # capturas de pantalla sueltas en la raíz
 /*.png
+/*.jpeg
+/*.jpg
 
 # postgres local para levantar la api de la cátedra, no es parte de la app
 docker-compose.yml
 db/
+
+# scripts personales de prueba (bash, python), no son parte de la app
+/scripts_bash_python/

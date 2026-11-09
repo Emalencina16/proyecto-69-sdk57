@@ -10,10 +10,13 @@ import { esIdConPrefijo, nuevoId } from '../../common/ids/ids.js';
 import { Reloj } from '../../common/clock/clock.js';
 import { calcularPaginacion } from '../../common/response/pagination.js';
 import { normalizarBusqueda } from '../../common/text/text.js';
+import { VerificadorArchivos } from '../../common/files/file-verifier.js';
 import { CategoriasServicio } from '../categories/categories.service.js';
 import type { ListarLugaresDto } from './dto/list-places.dto.js';
+import type { AgregarImagenLugarDto } from './dto/add-place-image.dto.js';
 import type { LugarACargar } from './place-to-load.js';
 import { LugarEntidad } from './place.entity.js';
+import { ImagenLugarEntidad } from './place-image.entity.js';
 import { aContrato } from './places.mapper.js';
 import { inicioDeTemporada } from './rules/hours.js';
 import {
@@ -29,8 +32,10 @@ import { codigoQrDe, leerCodigoQr } from './rules/qr.js';
 export class LugaresServicio {
   constructor(
     @InjectRepository(LugarEntidad) private readonly repo: Repository<LugarEntidad>,
+    @InjectRepository(ImagenLugarEntidad) private readonly imagenRepo: Repository<ImagenLugarEntidad>,
     private readonly categorias: CategoriasServicio,
     private readonly reloj: Reloj,
+    private readonly archivos: VerificadorArchivos,
   ) {}
 
   async listar(filtros: ListarLugaresDto): Promise<{ datos: Lugar[]; meta: Meta }> {
@@ -82,9 +87,22 @@ export class LugaresServicio {
     const idsPagina = ordenadas.slice(saltar, saltar + porPagina).map((f) => f.id);
     const entidades = idsPagina.length > 0 ? await this.repo.findBy({ id: In(idsPagina) }) : [];
     const porId = new Map(entidades.map((e) => [e.id, e]));
+    const imagenesSubidas =
+      idsPagina.length > 0
+        ? await this.imagenRepo.find({
+            where: { lugarId: In(idsPagina) },
+            order: { creadoEn: 'ASC', id: 'ASC' },
+          })
+        : [];
+    const imagenesPorLugar = new Map<string, string[]>();
+    for (const imagen of imagenesSubidas) {
+      const lista = imagenesPorLugar.get(imagen.lugarId) ?? [];
+      lista.push(imagen.clave);
+      imagenesPorLugar.set(imagen.lugarId, lista);
+    }
     const datos = idsPagina.flatMap((id) => {
       const entidad = porId.get(id);
-      return entidad ? [aContrato(entidad, ahora)] : [];
+      return entidad ? [aContrato(entidad, ahora, imagenesPorLugar.get(id))] : [];
     });
     return { datos, meta: { total: ordenadas.length, pagina, porPagina } };
   }
@@ -93,7 +111,24 @@ export class LugaresServicio {
   async detalle(id: string): Promise<Lugar> {
     const lugar = await this.buscar(id);
     if (!lugar) throw new ErrorApi('LUGAR_NO_ENCONTRADO');
-    return aContrato(lugar, this.reloj.ahora());
+    return this.conContrato(lugar, this.reloj.ahora());
+  }
+
+  async agregarImagen(id: string, usuarioId: string, { url }: AgregarImagenLugarDto): Promise<Lugar> {
+    const lugar = await this.buscar(id);
+    if (!lugar) throw new ErrorApi('LUGAR_NO_ENCONTRADO');
+    const clave = await this.archivos.claveSubida(url, 'imagen');
+    const ahora = this.reloj.ahora();
+    await this.imagenRepo.insert({
+      id: nuevoId('img'),
+      lugarId: id,
+      usuarioId,
+      clave,
+      creadoEn: ahora,
+    });
+    await this.repo.update({ id }, { actualizadoEn: ahora });
+    lugar.actualizadoEn = ahora;
+    return this.conContrato(lugar, ahora);
   }
 
   async existe(id: string): Promise<boolean> {
@@ -105,7 +140,7 @@ export class LugaresServicio {
     const id = leerCodigoQr(codigo);
     const lugar = id ? await this.buscar(id) : null;
     if (!id || !lugar || lugar.codigoQr !== codigoQrDe(id)) throw new ErrorApi('QR_NO_RECONOCIDO');
-    return aContrato(lugar, this.reloj.ahora());
+    return this.conContrato(lugar, this.reloj.ahora());
   }
 
   /**
@@ -169,5 +204,13 @@ export class LugaresServicio {
     if (!esIdConPrefijo(id, 'lug')) return null;
     const lugar = await this.repo.findOneBy({ id });
     return lugar?.id === id ? lugar : null;
+  }
+
+  private async conContrato(lugar: LugarEntidad, ahora: Date): Promise<Lugar> {
+    const imagenes = await this.imagenRepo.find({
+      where: { lugarId: lugar.id },
+      order: { creadoEn: 'ASC', id: 'ASC' },
+    });
+    return aContrato(lugar, ahora, imagenes.map((imagen) => imagen.clave));
   }
 }

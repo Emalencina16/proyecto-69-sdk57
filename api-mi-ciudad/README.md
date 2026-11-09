@@ -144,6 +144,9 @@ Para **mirar** lugares, mapa y agenda no hace falta cuenta. La cuenta es para gu
 - **Fotos de lugares:** cualquier persona con sesión puede subir una foto y agregarla a la ficha
   pública con `POST /lugares/:id/imagenes` y `{ "url": "…" }`. Primero hay que subirla con
   `POST /archivos`; la respuesta de lugares incluirá la foto para todas las personas.
+- **Comentarios de lugares:** cualquiera puede leerlos con `GET /lugares/:id/comentarios`; para
+  publicar hace falta sesión y se manda `{ "texto": "…" }` a `POST /lugares/:id/comentarios`.
+  Admiten hasta 500 caracteres y se muestran públicamente, del más nuevo al más antiguo.
 - La documentación completa, con ejemplos y los errores de cada endpoint, está en
   <http://localhost:3000/docs>.
 
@@ -241,6 +244,8 @@ Para **mirar** lugares, mapa y agenda no hace falta cuenta. La cuenta es para gu
 | `GET` | `/lugares` | 🌐 | Lugares |
 | `GET` | `/lugares/qr/:codigo` | 🌐 | Lugar de un código QR |
 | `GET` | `/lugares/:id` | 🌐 | Detalle de un lugar |
+| `GET` | `/lugares/:id/comentarios` | 🌐 | Comentarios públicos de un lugar |
+| `POST` | `/lugares/:id/comentarios` | 🔒 | Publicar un comentario |
 | `POST` | `/lugares/:id/imagenes` | 🔒 | Agregar una foto pública a un lugar |
 | `GET` | `/eventos` | 🌐 | Agenda de eventos |
 | `GET` | `/eventos/:id` | 🌐 | Detalle de un evento |

@@ -1,4 +1,6 @@
 import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { ScrollView, Text } from "react-native";
@@ -13,6 +15,12 @@ import { obtenerVisitas, registrarVisita } from "@/servicios/visitas";
 import type { Lugar } from "@/tipos/lugar";
 import type { Visita } from "@/tipos/visita";
 
+// quality 0.5 deja la foto muy por debajo del límite de 5 MB de la API.
+const OPCIONES_FOTO: ImagePicker.ImagePickerOptions = {
+  mediaTypes: ["images"],
+  quality: 0.5,
+};
+
 export default function MiRecorrido() {
   const { usuario } = useSesion();
   const [visitas, setVisitas] = useState<Visita[]>([]);
@@ -23,6 +31,7 @@ export default function MiRecorrido() {
   const [registrando, setRegistrando] = useState(false);
   const [lugarElegido, setLugarElegido] = useState<string | null>(null);
   const [nota, setNota] = useState("");
+  const [foto, setFoto] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [errorRegistro, setErrorRegistro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -69,7 +78,30 @@ export default function MiRecorrido() {
     setRegistrando(false);
     setLugarElegido(null);
     setNota("");
+    setFoto(null);
     setErrorRegistro(null);
+  }
+
+  // Cámara (lo que pide el PRD: "sacar una foto en el lugar") o galería.
+  // La galería no pide permiso en Android/iOS modernos; la cámara sí.
+  async function elegirFoto(desde: "camara" | "galeria") {
+    setErrorRegistro(null);
+    try {
+      if (desde === "camara") {
+        const permiso = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permiso.granted) {
+          setErrorRegistro("Sin permiso de cámara. Podés elegir una foto de la galería.");
+          return;
+        }
+      }
+      const resultado =
+        desde === "camara"
+          ? await ImagePicker.launchCameraAsync(OPCIONES_FOTO)
+          : await ImagePicker.launchImageLibraryAsync(OPCIONES_FOTO);
+      if (!resultado.canceled) setFoto(resultado.assets[0].uri);
+    } catch {
+      setErrorRegistro("No pudimos abrir la cámara ni la galería.");
+    }
   }
 
   async function confirmar() {
@@ -81,6 +113,7 @@ export default function MiRecorrido() {
         lugarId: lugarElegido,
         origen: "manual",
         nota: nota.trim() || null,
+        foto,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setAviso(
@@ -147,6 +180,14 @@ export default function MiRecorrido() {
                   timeStyle: "short",
                 })}
               </Text>
+              {visita.fotoUri ? (
+                <Image
+                  source={{ uri: visita.fotoUri }}
+                  contentFit="cover"
+                  accessibilityLabel={`Foto de la visita a ${nombreDe(visita.lugarId)}`}
+                  style={{ width: "100%", aspectRatio: 4 / 3, borderRadius: 12 }}
+                />
+              ) : null}
               {visita.nota ? (
                 <Text className="text-base text-texto">{visita.nota}</Text>
               ) : null}
@@ -185,6 +226,27 @@ export default function MiRecorrido() {
               maxLength={200}
               multiline
             />
+
+            {foto ? (
+              <>
+                <Image
+                  source={{ uri: foto }}
+                  contentFit="cover"
+                  accessibilityLabel="Foto elegida para la visita"
+                  style={{ width: "100%", aspectRatio: 4 / 3, borderRadius: 12 }}
+                />
+                <Boton titulo="Quitar foto" variante="secundario" onPress={() => setFoto(null)} />
+              </>
+            ) : (
+              <>
+                <Boton titulo="Sacar foto" variante="secundario" onPress={() => elegirFoto("camara")} />
+                <Boton
+                  titulo="Elegir de la galería"
+                  variante="secundario"
+                  onPress={() => elegirFoto("galeria")}
+                />
+              </>
+            )}
 
             {errorRegistro ? (
               <Text className="text-base text-error">{errorRegistro}</Text>

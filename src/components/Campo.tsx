@@ -13,7 +13,7 @@ export function Campo({ etiqueta, ...inputProps }: Props) {
       <Text className="text-sm font-medium text-texto-suave">{etiqueta}</Text>
       <TextInput
         placeholderTextColor={colores['texto-suave']}
-        className="rounded-lg border border-borde bg-superficie px-3 py-3 text-base text-texto"
+        className="rounded-xl border border-borde bg-superficie px-4 py-3.5 text-base text-texto"
         {...inputProps}
       />
     </View>

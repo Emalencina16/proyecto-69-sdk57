@@ -2,7 +2,6 @@ import { crearApp, type AppDePrueba } from '../utilities/create-app.js';
 import { esperarContrato, esperarError } from '../utilities/contract.js';
 import {
   claveDe,
-  conSesion,
   crearCategoria,
   crearLugar,
   MUESTRAS,

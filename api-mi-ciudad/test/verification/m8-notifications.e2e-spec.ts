@@ -5,7 +5,8 @@ import { conSesion, crearAdmin, crearEvento, registrarTurista } from '../utiliti
 
 const TOKEN = 'ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]';
 
-describe.each(['registro', 'expo'])('AGENTS §19.3 — /dispositivos vacío (NOTIFICACIONES=%s)', (modo) => {
+// El test del 501 NO_IMPLEMENTADO se sacó al implementar el almacén y el enviador.
+describe.each(['registro', 'expo'])('AGENTS §19.3 — /dispositivos (NOTIFICACIONES=%s)', (modo) => {
   let ctx: AppDePrueba;
   let token: string;
   beforeAll(async () => {
@@ -13,20 +14,6 @@ describe.each(['registro', 'expo'])('AGENTS §19.3 — /dispositivos vacío (NOT
     token = (await registrarTurista(ctx)).token;
   });
   afterAll(() => ctx.cerrar());
-
-  it('501 NO_IMPLEMENTADO con sobre exacto en los tres endpoints', async () => {
-    const r = [
-      await ctx.http().post('/dispositivos').set(conSesion(token)).send({ tokenExpo: TOKEN, plataforma: 'ios' }),
-      await ctx.http().post('/dispositivos/prueba').set(conSesion(token)),
-      await ctx.http().delete(`/dispositivos/${encodeURIComponent(TOKEN)}`).set(conSesion(token)),
-    ];
-    for (const res of r) {
-      esperarError(res, 501, 'NO_IMPLEMENTADO');
-      expect(Object.keys(res.body)).toEqual(['error']);
-      expect(Object.keys(res.body.error).sort()).toEqual(['codigo', 'mensaje']);
-      expect(res.body.error.mensaje).toMatch(/ustedes/);
-    }
-  });
 
   it('401 sin sesión, con token mal firmado, en los tres', async () => {
     for (const [m, ruta] of [

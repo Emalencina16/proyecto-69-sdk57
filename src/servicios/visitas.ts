@@ -1,5 +1,4 @@
 import { Directory, File, Paths } from "expo-file-system";
-import { getNetworkStateAsync } from "expo-network";
 
 import { pedir, pedirLista, pedirUno } from "@/servicios/cliente";
 import {
@@ -7,7 +6,9 @@ import {
     leerPendientes,
     quitarPendiente,
 } from "@/servicios/colaVisitas";
+import { guardarCopia, leerCopia } from "@/servicios/copiaLocal";
 import { ErrorServicio } from "@/servicios/errores";
+import { esSinConexion, hayInternet } from "@/servicios/red";
 import { leerSesion } from "@/servicios/sesionGuardada";
 import type { RespuestaUno } from "@/tipos/api";
 import type { OrigenVisita, Visita } from "@/tipos/visita";
@@ -76,14 +77,6 @@ function ahoraConZona(): string {
   const horas = String(Math.floor(Math.abs(desfase) / 60)).padStart(2, "0");
   const minutos = String(Math.abs(desfase) % 60).padStart(2, "0");
   return `${local}${signo}${horas}:${minutos}`;
-}
-
-async function hayInternet(): Promise<boolean> {
-  try {
-    return (await getNetworkStateAsync()).isInternetReachable !== false;
-  } catch {
-    return true; // si no se puede saber, se intenta igual
-  }
 }
 
 // Una url de la API (http/https) ya está subida; cualquier otra cosa es local.
@@ -237,14 +230,52 @@ export function sincronizarVisitas(): Promise<void> {
   return sincronizando;
 }
 
+export type Recorrido = {
+  visitas: Visita[];
+  // true si las de la API vienen de la copia del teléfono (sin señal)
+  sinConexion: boolean;
+};
+
+// Copia por usuario: si en el teléfono entra otra cuenta, no ve el recorrido
+// de la anterior.
+const claveCopia = (usuarioId: string) => `visitas.ultimas.${usuarioId}`;
+
 // Las de la API más las que todavía están en el teléfono, en orden de
-// recorrido. Antes intenta subir las pendientes.
+// recorrido. Con señal, antes intenta subir las pendientes y guarda una copia
+// de las de la API. Sin señal (o con el servidor caído) usa esa copia: el
+// recorrido se sigue viendo en El Palmar. Si no hay copia, lanza el error.
+export async function obtenerRecorrido(): Promise<Recorrido> {
+  const usuarioId = await usuarioActual();
+  let subidas: Visita[] | null = null;
+  if (await hayInternet()) {
+    await sincronizarVisitas();
+    try {
+      subidas = await pedirLista<Visita>(`/yo/visitas?porPagina=${VISITAS_POR_PAGINA}`);
+      await guardarCopia(claveCopia(usuarioId), subidas);
+    } catch (error) {
+      if (!esSinConexion(error)) throw error;
+    }
+  }
+  const sinConexion = subidas === null;
+  if (sinConexion) {
+    subidas = await leerCopia<Visita[]>(claveCopia(usuarioId));
+    if (!subidas) {
+      throw new ErrorServicio({
+        codigo: "ERROR_RED",
+        mensaje: "No pudimos cargar tu recorrido. Probá de nuevo con señal.",
+      });
+    }
+  }
+  const pendientes = await leerPendientes(usuarioId);
+  return { visitas: unirEnOrden(subidas ?? [], pendientes), sinConexion };
+}
+
+// Igual que obtenerRecorrido, solo la lista.
 export async function obtenerVisitas(): Promise<Visita[]> {
-  await sincronizarVisitas();
-  const [subidas, pendientes] = await Promise.all([
-    pedirLista<Visita>(`/yo/visitas?porPagina=${VISITAS_POR_PAGINA}`),
-    usuarioActual().then(leerPendientes),
-  ]);
+  return (await obtenerRecorrido()).visitas;
+}
+
+function unirEnOrden(subidas: Visita[], pendientes: Visita[]): Visita[] {
   // Por id: si una se subió pero no se llegó a sacar de la cola, sale una vez.
   const porId = new Map(
     [...pendientes, ...subidas].map((visita) => [visita.id, visita]),

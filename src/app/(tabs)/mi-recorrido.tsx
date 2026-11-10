@@ -3,17 +3,19 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { ScrollView, Text } from "react-native";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { Boton } from "@/components/Boton";
 import { Campo } from "@/components/Campo";
 import { Pantalla } from "@/components/Pantalla";
 import { Tarjeta } from "@/components/Tarjeta";
 import { useSesion } from "@/estado/sesion";
-import { obtenerLugares } from "@/servicios/lugares";
-import { obtenerVisitas, registrarVisita } from "@/servicios/visitas";
+import { obtenerCatalogo } from "@/servicios/catalogo";
+import { obtenerRecorrido, registrarVisita } from "@/servicios/visitas";
 import type { Lugar } from "@/tipos/lugar";
 import type { Visita } from "@/tipos/visita";
+import colores from "@/tema/colores";
 
 // quality 0.5 deja la foto muy por debajo del límite de 5 MB de la API.
 const OPCIONES_FOTO: ImagePicker.ImagePickerOptions = {
@@ -27,6 +29,7 @@ export default function MiRecorrido() {
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sinConexion, setSinConexion] = useState(false);
 
   const [registrando, setRegistrando] = useState(false);
   const [lugarElegido, setLugarElegido] = useState<string | null>(null);
@@ -46,12 +49,15 @@ export default function MiRecorrido() {
       if (!segundoPlano) setCargando(true);
       setError(null);
       try {
-        const [v, l] = await Promise.all([
-          obtenerVisitas(),
-          obtenerLugares().catch(() => [] as Lugar[]),
+        // Sin señal, los dos devuelven lo guardado en el teléfono. Sin lugares
+        // se ve igual el recorrido (con el id en lugar del nombre).
+        const [recorrido, catalogo] = await Promise.all([
+          obtenerRecorrido(),
+          obtenerCatalogo().catch(() => null),
         ]);
-        setVisitas(v);
-        setLugares(l);
+        setVisitas(recorrido.visitas);
+        setLugares(catalogo?.lugares ?? []);
+        setSinConexion(recorrido.sinConexion || !catalogo || catalogo.sinConexion);
       } catch (e) {
         setError(e instanceof Error ? e.message : "No pudimos cargar tu recorrido.");
       } finally {
@@ -160,6 +166,15 @@ export default function MiRecorrido() {
   return (
     <Pantalla>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+        {sinConexion ? (
+          <View className="mb-3 flex-row items-center gap-2 rounded-xl border border-borde bg-primario-claro px-4 py-3">
+            <Ionicons name="cloud-offline-outline" size={24} color={colores.primario} />
+            <Text className="flex-1 text-base text-texto">
+              Sin conexión. Te mostramos lo guardado en el teléfono; las visitas nuevas se suben
+              cuando vuelva la señal.
+            </Text>
+          </View>
+        ) : null}
         {aviso ? (
           <Text className="text-base font-semibold text-texto">{aviso}</Text>
         ) : null}
@@ -228,24 +243,36 @@ export default function MiRecorrido() {
             />
 
             {foto ? (
-              <>
+              <View>
                 <Image
                   source={{ uri: foto }}
                   contentFit="cover"
                   accessibilityLabel="Foto elegida para la visita"
                   style={{ width: "100%", aspectRatio: 4 / 3, borderRadius: 12 }}
                 />
-                <Boton titulo="Quitar foto" variante="secundario" onPress={() => setFoto(null)} />
-              </>
+                <Pressable
+                  onPress={() => setFoto(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Quitar foto"
+                  hitSlop={8}
+                  className="absolute right-2 top-2 rounded-full bg-superficie active:opacity-80"
+                >
+                  <Ionicons name="close-circle" size={32} color={colores.error} />
+                </Pressable>
+              </View>
             ) : (
-              <>
-                <Boton titulo="Sacar foto" variante="secundario" onPress={() => elegirFoto("camara")} />
-                <Boton
-                  titulo="Elegir de la galería"
-                  variante="secundario"
-                  onPress={() => elegirFoto("galeria")}
-                />
-              </>
+              <View className="flex-row gap-3">
+                <BotonFoto
+                  icono="camera-outline"
+                  titulo="Cámara"
+                  descripcion="Sacar foto con la cámara"
+                  onPress={() => elegirFoto("camara")} />
+                <BotonFoto
+                  icono="images-outline"
+                  titulo="Galería"
+                  descripcion="Elegir foto de la galería"
+                  onPress={() => elegirFoto("galeria")} />
+              </View>
             )}
 
             {errorRegistro ? (
@@ -262,4 +289,29 @@ export default function MiRecorrido() {
         )}
       </ScrollView>
     </Pantalla>  );
+}
+
+// Mismo aspecto que el Boton secundario, con ícono arriba del texto.
+function BotonFoto({
+  icono,
+  titulo,
+  descripcion,
+  onPress,
+}: {
+  icono: "camera-outline" | "images-outline";
+  titulo: string;
+  descripcion: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={descripcion}
+      className="min-h-20 flex-1 items-center justify-center gap-1 rounded-xl border border-borde bg-superficie px-3 py-3 active:opacity-80"
+    >
+      <Ionicons name={icono} size={28} color={colores.primario} />
+      <Text className="text-base font-bold text-primario">{titulo}</Text>
+    </Pressable>
+  );
 }

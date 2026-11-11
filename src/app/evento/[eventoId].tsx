@@ -1,5 +1,6 @@
 import { Pantalla } from '@/components/Pantalla';
 import { Tarjeta } from '@/components/Tarjeta';
+import { cancelarAvisoEvento } from '@/servicios/avisosEventos';
 import { obtenerEvento } from '@/servicios/eventos';
 import { obtenerLugar } from '@/servicios/lugares';
 import type { EstadoEvento, Evento } from '@/tipos/evento';
@@ -44,6 +45,7 @@ export default function DetalleEvento() {
     lugar: Lugar | null;
     error: string | null;
     errorLugar: string | null;
+    errorAviso: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -54,6 +56,16 @@ export default function DetalleEvento() {
         const evento = await obtenerEvento(eventoId);
         let lugar: Lugar | null = null;
         let errorLugar: string | null = null;
+        let errorAviso: string | null = null;
+
+        if (evento.estado !== 'programado') {
+          try {
+            await cancelarAvisoEvento(evento.id);
+          } catch (err) {
+            console.error(err);
+            errorAviso = 'No se pudo cancelar el aviso local del evento.';
+          }
+        }
 
         if (evento.lugarId) {
           try {
@@ -64,7 +76,7 @@ export default function DetalleEvento() {
           }
         }
 
-        if (vigente) setResultado({ eventoId, evento, lugar, error: null, errorLugar });
+        if (vigente) setResultado({ eventoId, evento, lugar, error: null, errorLugar, errorAviso });
       } catch (err) {
         console.error(err);
         if (vigente) {
@@ -74,6 +86,7 @@ export default function DetalleEvento() {
             lugar: null,
             error: err instanceof Error ? err.message : 'No se pudo cargar el evento.',
             errorLugar: null,
+            errorAviso: null,
           });
         }
       }
@@ -91,6 +104,7 @@ export default function DetalleEvento() {
   const lugar = resultado?.eventoId === eventoId ? resultado.lugar : null;
   const error = resultado?.eventoId === eventoId ? resultado.error : null;
   const errorLugar = resultado?.eventoId === eventoId ? resultado.errorLugar : null;
+  const errorAviso = resultado?.eventoId === eventoId ? resultado.errorAviso : null;
   const coordenadas = evento?.coordenadas ?? lugar?.coordenadas ?? null;
 
   return (
@@ -158,6 +172,11 @@ export default function DetalleEvento() {
             {errorLugar ? (
               <Text accessibilityRole="alert" className="text-sm text-error">
                 {errorLugar}
+              </Text>
+            ) : null}
+            {errorAviso ? (
+              <Text accessibilityRole="alert" className="text-sm text-error">
+                {errorAviso}
               </Text>
             ) : null}
             {coordenadas ? (

@@ -32,7 +32,23 @@ Notifications.setNotificationHandler({
 });
 
 // En Android 13+ el pedido de permiso no aparece hasta que exista un canal.
-const CANAL = 'avisos';
+export const CANAL_AVISOS = 'avisos';
+
+export async function prepararCanalAvisos(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+
+  await Notifications.setNotificationChannelAsync(CANAL_AVISOS, {
+    name: 'Avisos de Mi Ciudad',
+    importance: Notifications.AndroidImportance.HIGH,
+  });
+}
+
+export async function pedirPermisoNotificaciones(): Promise<boolean> {
+  const actual = await Notifications.getPermissionsAsync();
+  if (actual.granted) return true;
+  if (!actual.canAskAgain) return false;
+  return (await Notifications.requestPermissionsAsync()).granted;
+}
 
 // El token que se mandó a la API, para darlo de baja al cerrar sesión.
 let tokenRegistrado: string | null = null;
@@ -41,24 +57,12 @@ function idDelProyecto(): string | undefined {
   return Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 }
 
-async function tienePermiso(): Promise<boolean> {
-  const actual = await Notifications.getPermissionsAsync();
-  if (actual.granted) return true;
-  if (!actual.canAskAgain) return false;
-  return (await Notifications.requestPermissionsAsync()).granted;
-}
-
 // Llamar con la sesión ya configurada en el cliente (POST /dispositivos pide
 // token). Idempotente: la API responde 200 si el teléfono ya estaba.
 export async function registrarTelefono(): Promise<void> {
   try {
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync(CANAL, {
-        name: 'Avisos de Mi Ciudad',
-        importance: Notifications.AndroidImportance.HIGH,
-      });
-    }
-    if (!(await tienePermiso())) {
+    await prepararCanalAvisos();
+    if (!(await pedirPermisoNotificaciones())) {
       console.warn('[notificaciones] sin permiso: este teléfono no va a recibir avisos');
       return;
     }

@@ -2,6 +2,12 @@ import { Pantalla } from '@/components/Pantalla';
 import { Tarjeta } from '@/components/Tarjeta';
 import { useSesion } from '@/estado/sesion';
 import {
+  cancelarAvisoEvento,
+  obtenerAvisosEventosProgramados,
+  programarAvisoEvento,
+  sincronizarAvisosEventosGuardados,
+} from '@/servicios/avisosEventos';
+import {
   guardarEvento,
   obtenerEventos,
   obtenerEventosGuardados,
@@ -53,6 +59,11 @@ export default function Agenda() {
   const [eventosActualizandose, setEventosActualizandose] = useState<Set<string>>(
     () => new Set(),
   );
+  const [avisosLocales, setAvisosLocales] = useState<Set<string>>(() => new Set());
+  const [avisosActualizandose, setAvisosActualizandose] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [errorAvisoLocal, setErrorAvisoLocal] = useState<string | null>(null);
   const [mesVisible, setMesVisible] = useState(() => {
     const hoy = new Date();
     return new Date(hoy.getFullYear(), hoy.getMonth(), 1);
@@ -95,6 +106,18 @@ export default function Agenda() {
             ids: new Set(eventosObtenidos.map((evento) => evento.id)),
             error: null,
           });
+          return sincronizarAvisosEventosGuardados(eventosObtenidos)
+            .then((idsAvisados) => {
+              if (vigente) setAvisosLocales(new Set(idsAvisados));
+            })
+            .catch((err) => {
+              console.error(err);
+              if (vigente) {
+                setErrorAvisoLocal(
+                  err instanceof Error ? err.message : 'No se pudieron sincronizar los avisos locales.',
+                );
+              }
+            });
         })
         .catch((err) => {
           console.error(err);
@@ -110,6 +133,30 @@ export default function Agenda() {
         vigente = false;
       };
     }, [sesion.usuario?.id]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (sesion.usuario) return;
+
+      let vigente = true;
+      obtenerAvisosEventosProgramados()
+        .then((idsAvisados) => {
+          if (vigente) setAvisosLocales(new Set(idsAvisados));
+        })
+        .catch((err) => {
+          console.error(err);
+          if (vigente) {
+            setErrorAvisoLocal(
+              err instanceof Error ? err.message : 'No se pudieron cargar los avisos locales.',
+            );
+          }
+        });
+
+      return () => {
+        vigente = false;
+      };
+    }, [sesion.usuario]),
   );
 
   const idsEventosGuardados =
@@ -144,6 +191,20 @@ export default function Agenda() {
           ),
           error: null,
         }));
+        try {
+          await cancelarAvisoEvento(evento.id);
+          setAvisosLocales((actuales) => {
+            const siguientes = new Set(actuales);
+            siguientes.delete(evento.id);
+            return siguientes;
+          });
+          setErrorAvisoLocal(null);
+        } catch (err) {
+          console.error(err);
+          setErrorAvisoLocal(
+            'El evento se desguardó, pero no se pudo cancelar su aviso local.',
+          );
+        }
       } else {
         await guardarEvento(evento.id);
         setEventosGuardados((actuales) => ({
@@ -161,6 +222,38 @@ export default function Agenda() {
       }));
     } finally {
       setEventosActualizandose((actuales) => {
+        const siguientes = new Set(actuales);
+        siguientes.delete(evento.id);
+        return siguientes;
+      });
+    }
+  }
+
+  async function alternarAvisoLocal(evento: Evento) {
+    if (!idsEventosGuardados.has(evento.id) || evento.estado !== 'programado') return;
+    if (avisosActualizandose.has(evento.id)) return;
+
+    setAvisosActualizandose((actuales) => new Set(actuales).add(evento.id));
+    setErrorAvisoLocal(null);
+    try {
+      if (avisosLocales.has(evento.id)) {
+        await cancelarAvisoEvento(evento.id);
+        setAvisosLocales((actuales) => {
+          const siguientes = new Set(actuales);
+          siguientes.delete(evento.id);
+          return siguientes;
+        });
+      } else {
+        await programarAvisoEvento(evento);
+        setAvisosLocales((actuales) => new Set(actuales).add(evento.id));
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorAvisoLocal(
+        err instanceof Error ? err.message : 'No se pudo actualizar el aviso del evento.',
+      );
+    } finally {
+      setAvisosActualizandose((actuales) => {
         const siguientes = new Set(actuales);
         siguientes.delete(evento.id);
         return siguientes;
@@ -352,6 +445,11 @@ export default function Agenda() {
                 {errorEventosGuardados}
               </Text>
             ) : null}
+            {errorAvisoLocal ? (
+              <Text accessibilityRole="alert" className="text-sm text-error">
+                {errorAvisoLocal}
+              </Text>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -421,6 +519,28 @@ export default function Agenda() {
                         : idsEventosGuardados.has(item.id)
                           ? 'Quitar de guardados'
                           : 'Guardar evento'}
+                </Text>
+              </Pressable>
+            ) : null}
+            {item.estado === 'programado' && idsEventosGuardados.has(item.id) ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  avisosLocales.has(item.id)
+                    ? `Desactivar notificaciones para ${item.titulo}`
+                    : `Activar notificaciones para ${item.titulo}`
+                }
+                accessibilityState={{ disabled: avisosActualizandose.has(item.id) }}
+                disabled={avisosActualizandose.has(item.id)}
+                onPress={() => alternarAvisoLocal(item)}
+                className="min-h-11 flex-row items-center justify-center rounded-xl border border-borde px-2 active:opacity-80"
+              >
+                <Text numberOfLines={1} className="text-xs font-semibold text-primario">
+                  {avisosActualizandose.has(item.id)
+                    ? 'Actualizando aviso...'
+                    : avisosLocales.has(item.id)
+                      ? 'Desactivar notificaciones'
+                      : 'Activar notificaciones'}
                 </Text>
               </Pressable>
             ) : null}

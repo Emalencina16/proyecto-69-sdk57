@@ -13,13 +13,16 @@ import { SesionProvider } from "@/estado/sesion";
 // (@gorhom/bottom-sheet) para reconocer el gesto de arrastrar.
 export default function RootLayout() {
   const pathname = usePathname();
-  const rutaConVolver = pathname === "/login" || pathname.startsWith("/lugar/");
+  const rutaConVolver =
+    pathname === "/login" || pathname.startsWith("/lugar/") || pathname.startsWith("/evento/");
 
   function volver() {
     if (router.canGoBack()) {
       router.back();
     } else if (pathname.startsWith("/lugar/")) {
       router.replace("/(tabs)/lugares");
+    } else if (pathname.startsWith("/evento/")) {
+      router.replace("/(tabs)/agenda");
     } else {
       router.replace("/mapa");
     }

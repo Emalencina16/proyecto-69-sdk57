@@ -62,6 +62,13 @@
         }
       ],
       "expo-video",
+      [
+        "expo-notifications",
+        {
+          "color": "#208AEF",
+          "defaultChannel": "avisos"
+        }
+      ],
       "@react-native-vector-icons/ionicons"
     ],
     "experiments": {

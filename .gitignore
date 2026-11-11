@@ -70,3 +70,10 @@ db/
 
 # scripts personales de prueba (bash, python), no son parte de la app
 /scripts_bash_python/
+
+# Firebase (push en Android): se pasa por privado o va como variable de EAS
+google-services.json
+
+# notas personales
+endpoints_api.md
+endpoints_api_whatsapp.txt

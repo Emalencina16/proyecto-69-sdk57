@@ -50,12 +50,25 @@
         }
       ],
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Mi Ciudad usa tu ubicación para ordenar los lugares por cercanía."
+        }
+      ],
+      [
         "expo-audio",
         {
           "enableBackgroundPlayback": true
         }
       ],
       "expo-video",
+      [
+        "expo-notifications",
+        {
+          "color": "#208AEF",
+          "defaultChannel": "avisos"
+        }
+      ],
       "@react-native-vector-icons/ionicons"
     ],
     "experiments": {

@@ -14,14 +14,6 @@ import colores from '@/tema/colores';
 export default function Yo() {
   const sesion = useSesion();
 
-  // Antes hacía falta useFocusEffect porque expo-router no desmonta las
-  // tabs: un useEffect normal solo pedía la lista la primera vez que se
-  // visitaba esta pantalla, y no se enteraba si se marcaba un favorito en
-  // Mapa. Con TanStack Query no hace falta acordarse de refrescar nada:
-  // ['favoritos', usuario.id, ...] comparte el mismo prefijo de clave que
-  // usa mapa.tsx, así que cuando esa pantalla invalida ['favoritos',
-  // usuario.id] tras una mutación, esta consulta se entera y se vuelve a
-  // pedir sola, esté o no en foco.
   const {
     data: favoritos = [],
     isPending,

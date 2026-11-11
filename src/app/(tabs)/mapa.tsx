@@ -51,13 +51,6 @@ export default function Mapa() {
       .finally(() => setCargando(false));
   }, []);
 
-  // Favoritos: no es estado nuestro, es una copia de lo que tiene el
-  // servidor — por eso va con TanStack Query y no con useState+useEffect.
-  // La clave incluye el usuario para no mostrar por un instante los
-  // favoritos de otra cuenta si cambia la sesión; enabled la apaga sin
-  // sesión (mirar no pide cuenta). Si falla (ej. token vencido: el cliente
-  // ya cierra la sesión y abre el login), el mapa se sigue viendo, solo que
-  // sin corazones marcados.
   const claveFavoritos = ['favoritos', usuario?.id] as const;
   const { data: favoritos = [] } = useQuery({
     queryKey: claveFavoritos,
@@ -71,15 +64,8 @@ export default function Mapa() {
   const colorDe = (id: string) => categorias.find((categoria) => categoria.id === id)?.color;
   const favoritoDe = (lugarId: string) => favoritos.find((favorito) => favorito.lugarId === lugarId);
 
-  // Actualización optimista con los tres tiempos de una mutación:
-  // onMutate cambia la caché YA (el corazón reacciona al toque, no al
-  // servidor), onError la vuelve al valor de antes si el pedido falla, y
-  // onSettled invalida la clave para que quede exactamente como la tiene la
-  // API — eso de paso refresca sola la lista de "Yo", sin que nadie se lo pida.
   const alternar = useMutation<void, Error, { lugarId: string; favoritoExistente?: Favorito }, { previos: Favorito[] }>({
     mutationFn: async ({ lugarId, favoritoExistente }) => {
-      // Se descarta lo que devuelve la API (ej. el favorito recién creado,
-      // con su id real): el dato de verdad lo trae el onSettled de abajo.
       if (favoritoExistente) {
         await quitarFavorito(lugarId);
       } else {

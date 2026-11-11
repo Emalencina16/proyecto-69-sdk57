@@ -6,6 +6,7 @@ import { AppState } from 'react-native';
 import { obtenerYo } from '@/servicios/autenticacion';
 import { configurarAlVencerSesion, configurarToken } from '@/servicios/cliente';
 import { pedirHuella } from '@/servicios/huella';
+import { darDeBajaTelefono, registrarTelefono } from '@/servicios/notificaciones';
 import {
   borrarSesion,
   guardarPideHuella,
@@ -62,13 +63,22 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
-  const cerrar = useCallback(async () => {
+  // Olvida la sesión en el teléfono. Sola (sin avisar a la API) cuando el
+  // token venció: un DELETE /dispositivos respondería 401 otra vez.
+  const olvidar = useCallback(async () => {
     configurarToken(null);
     setUsuario(null);
     setBloqueada(false);
     setPideHuella(false);
     await borrarSesion();
   }, []);
+
+  // Cerrar sesión a pedido: primero se da de baja el teléfono para las push
+  // (necesita el token), después se olvida la sesión.
+  const cerrar = useCallback(async () => {
+    await darDeBajaTelefono();
+    await olvidar();
+  }, [olvidar]);
 
   const iniciar = useCallback(async (sesion: SesionApi) => {
     // Si ingresa otra persona en este teléfono, no hereda la huella de la anterior.
@@ -101,7 +111,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     configurarAlVencerSesion(() => {
-      cerrar();
+      olvidar();
       // Encima de la pantalla actual: si elige "Seguir sin cuenta" vuelve ahí.
       router.push('/login');
     });
@@ -116,7 +126,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       }
       setCargando(false);
     })();
-  }, [cerrar, usar]);
+  }, [olvidar, usar]);
 
   // El listener de AppState se registra una sola vez: lee usuario y
   // pideHuella por ref para ver siempre el valor actual.
@@ -155,6 +165,14 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (usuario) sincronizarVisitas();
   }, [usuario]);
+
+  // Push: con sesión en uso, este teléfono se registra para recibir avisos de
+  // esa cuenta. Por id y no por objeto: GET /yo refresca el usuario y no hace
+  // falta registrarse de nuevo por eso.
+  const usuarioId = usuario?.id;
+  useEffect(() => {
+    if (usuarioId) registrarTelefono();
+  }, [usuarioId]);
 
   useEffect(() => {
     const suscripcion = addNetworkStateListener((estado) => {

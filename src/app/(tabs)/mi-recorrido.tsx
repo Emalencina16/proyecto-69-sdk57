@@ -6,16 +6,22 @@ import { useCallback, useState } from "react";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
+import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo } from "@/components/Campo";
+import { Cargando } from "@/components/Cargando";
+import { EstadoVacio } from "@/components/EstadoVacio";
+import { EtiquetaSeccion } from "@/components/EtiquetaSeccion";
 import { Pantalla } from "@/components/Pantalla";
 import { Tarjeta } from "@/components/Tarjeta";
+import { Titulo } from "@/components/Titulo";
 import { useSesion } from "@/estado/sesion";
 import { obtenerCatalogo } from "@/servicios/catalogo";
 import { obtenerRecorrido, registrarVisita } from "@/servicios/visitas";
 import type { Lugar } from "@/tipos/lugar";
 import type { Visita } from "@/tipos/visita";
-import colores from "@/tema/colores";
+import { useColores } from "@/tema/useColores";
+import radios from "@/tema/radios";
 
 // quality 0.5 deja la foto muy por debajo del límite de 5 MB de la API.
 const OPCIONES_FOTO: ImagePicker.ImagePickerOptions = {
@@ -24,6 +30,7 @@ const OPCIONES_FOTO: ImagePicker.ImagePickerOptions = {
 };
 
 export default function MiRecorrido() {
+  const colores = useColores();
   const { usuario } = useSesion();
   const [visitas, setVisitas] = useState<Visita[]>([]);
   const [lugares, setLugares] = useState<Lugar[]>([]);
@@ -37,7 +44,7 @@ export default function MiRecorrido() {
   const [foto, setFoto] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [errorRegistro, setErrorRegistro] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<{ texto: string; tono: "exito" | "advertencia" } | null>(null);
 
   const cargar = useCallback(
     async (segundoPlano = false) => {
@@ -74,6 +81,7 @@ export default function MiRecorrido() {
   );
 
   const nombreDe = (id: string) => lugares.find((l) => l.id === id)?.nombre ?? id;
+  const lugaresVisitados = new Set(visitas.map((v) => v.lugarId)).size;
 
   function abrirFormulario() {
     setAviso(null);
@@ -124,8 +132,11 @@ export default function MiRecorrido() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setAviso(
         registrada.sincronizada
-          ? "Visita registrada."
-          : "Visita guardada en tu teléfono. Se sube cuando vuelva la señal.",
+          ? { texto: "Visita registrada.", tono: "exito" }
+          : {
+              texto: "Visita guardada en tu teléfono. Se sube cuando vuelva la señal.",
+              tono: "advertencia",
+            },
       );
       cerrarFormulario();
       await cargar(true);
@@ -139,10 +150,12 @@ export default function MiRecorrido() {
   if (!usuario) {
     return (
       <Pantalla>
-        <Text className="text-base text-texto">
-          Ingresá para ver y guardar los lugares que visitaste.
-        </Text>
-        <Boton titulo="Ingresar" onPress={() => router.push("/login")} />
+        <EstadoVacio
+          icono="footsteps-outline"
+          titulo="Tu recorrido por Colón"
+          mensaje="Ingresá para ver y guardar los lugares que visitaste."
+          accion={{ titulo: "Ingresar", onPress: () => router.push("/login") }}
+        />
       </Pantalla>
     );
   }
@@ -150,7 +163,7 @@ export default function MiRecorrido() {
   if (cargando) {
     return (
       <Pantalla>
-        <Text className="text-base text-texto">Cargando tu recorrido...</Text>
+        <Cargando texto="Cargando tu recorrido..." />
       </Pantalla>
     );
   }
@@ -158,81 +171,54 @@ export default function MiRecorrido() {
   if (error) {
     return (
       <Pantalla>
-        <Text className="text-base text-texto">{error}</Text>
+        <EstadoVacio
+          tono="error"
+          icono="alert-circle-outline"
+          titulo="No pudimos cargar tu recorrido"
+          mensaje={error}
+          accion={{ titulo: "Reintentar", onPress: () => cargar() }}
+        />
       </Pantalla>
     );
   }
 
   return (
     <Pantalla>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerClassName="gap-4 pb-8"
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Titulo
+          subtitulo={
+            visitas.length === 0
+              ? "Los lugares de Colón que vas conociendo."
+              : `${lugaresVisitados} ${lugaresVisitados === 1 ? "lugar visitado" : "lugares visitados"} · ${visitas.length} ${visitas.length === 1 ? "visita" : "visitas"}`
+          }
+        >
+          Mi recorrido
+        </Titulo>
+
         {sinConexion ? (
-          <View className="mb-3 flex-row items-center gap-2 rounded-xl border border-borde bg-primario-claro px-4 py-3">
-            <Ionicons name="cloud-offline-outline" size={24} color={colores.primario} />
-            <Text className="flex-1 text-base text-texto">
-              Sin conexión. Te mostramos lo guardado en el teléfono; las visitas nuevas se suben
-              cuando vuelva la señal.
-            </Text>
-          </View>
+          <Aviso tono="advertencia" icono="cloud-offline-outline">
+            Sin conexión. Te mostramos lo guardado en el teléfono; las visitas nuevas se suben
+            cuando vuelva la señal.
+          </Aviso>
         ) : null}
-        {aviso ? (
-          <Text className="text-base font-semibold text-texto">{aviso}</Text>
-        ) : null}
+        {aviso ? <Aviso tono={aviso.tono}>{aviso.texto}</Aviso> : null}
 
-        {visitas.length === 0 ? (
-          <Text className="text-base text-texto">
-            Todavía no registraste ninguna visita.
-          </Text>
-        ) : (
-          visitas.map((visita) => (
-            <Tarjeta key={visita.id}>
-              <Text className="text-sm font-semibold uppercase text-texto">
-                {nombreDe(visita.lugarId)}
-              </Text>
-              <Text className="text-base text-texto">
-                {new Date(visita.fechaHora).toLocaleString("es-AR", {
-                  dateStyle: "short",
-                  timeStyle: "short",
-                })}
-              </Text>
-              {visita.fotoUri ? (
-                <Image
-                  source={{ uri: visita.fotoUri }}
-                  contentFit="cover"
-                  accessibilityLabel={`Foto de la visita a ${nombreDe(visita.lugarId)}`}
-                  style={{ width: "100%", aspectRatio: 4 / 3, borderRadius: 12 }}
-                />
-              ) : null}
-              {visita.nota ? (
-                <Text className="text-base text-texto">{visita.nota}</Text>
-              ) : null}
-              {!visita.sincronizada ? (
-                <Text className="text-sm text-texto">Pendiente de subir</Text>
-              ) : null}
-            </Tarjeta>
-          ))
-        )}
-
+        {/* Registrar va arriba: con muchas visitas no hay que bajar hasta el final. */}
         {!registrando ? (
-          <Boton titulo="Registrar visita" onPress={abrirFormulario} />
+          <Boton titulo="Registrar visita" icono="add-circle-outline" onPress={abrirFormulario} />
         ) : (
-          <>
-            <Text className="text-base font-semibold text-texto mt-4">¿Dónde estuviste?</Text>
+          <Tarjeta className="gap-4">
+            <EtiquetaSeccion>Nueva visita</EtiquetaSeccion>
 
-            {lugares.length === 0 ? (
-              <Text className="text-base text-texto">
-                No pudimos cargar los lugares. Probá de nuevo con señal.
-              </Text>
-            ) : (
-              lugares.map((l) => (
-                <Boton
-                  key={l.id}
-                  titulo={l.nombre}
-                  variante={lugarElegido === l.id ? "primario" : "secundario"}
-                  onPress={() => setLugarElegido(l.id)}
-                />
-              ))
-            )}
+            <SelectorLugar
+              lugares={lugares}
+              elegido={lugarElegido}
+              onElegir={setLugarElegido}
+            />
 
             <Campo
               etiqueta="Nota (opcional)"
@@ -248,7 +234,7 @@ export default function MiRecorrido() {
                   source={{ uri: foto }}
                   contentFit="cover"
                   accessibilityLabel="Foto elegida para la visita"
-                  style={{ width: "100%", aspectRatio: 4 / 3, borderRadius: 12 }}
+                  style={{ width: "100%", aspectRatio: 4 / 3, borderRadius: radios.control }}
                 />
                 <Pressable
                   onPress={() => setFoto(null)}
@@ -262,56 +248,184 @@ export default function MiRecorrido() {
               </View>
             ) : (
               <View className="flex-row gap-3">
-                <BotonFoto
-                  icono="camera-outline"
+                <Boton
                   titulo="Cámara"
-                  descripcion="Sacar foto con la cámara"
-                  onPress={() => elegirFoto("camara")} />
-                <BotonFoto
-                  icono="images-outline"
+                  variante="secundario"
+                  tamano="vertical"
+                  icono="camera-outline"
+                  accessibilityLabel="Sacar foto con la cámara"
+                  onPress={() => elegirFoto("camara")}
+                  className="flex-1"
+                />
+                <Boton
                   titulo="Galería"
-                  descripcion="Elegir foto de la galería"
-                  onPress={() => elegirFoto("galeria")} />
+                  variante="secundario"
+                  tamano="vertical"
+                  icono="images-outline"
+                  accessibilityLabel="Elegir foto de la galería"
+                  onPress={() => elegirFoto("galeria")}
+                  className="flex-1"
+                />
               </View>
             )}
 
-            {errorRegistro ? (
-              <Text className="text-base text-error">{errorRegistro}</Text>
-            ) : null}
+            {errorRegistro ? <Aviso tono="error">{errorRegistro}</Aviso> : null}
 
             <Boton
               titulo={guardando ? "Guardando..." : "Confirmar"}
+              icono="checkmark"
               onPress={confirmar}
-              deshabilitado={!lugarElegido || guardando}
+              cargando={guardando}
+              deshabilitado={!lugarElegido}
             />
             <Boton titulo="Cancelar" variante="secundario" onPress={cerrarFormulario} />
+          </Tarjeta>
+        )}
+
+        {visitas.length === 0 ? (
+          <EstadoVacio
+            icono="map-outline"
+            titulo="Todavía no registraste ninguna visita"
+            mensaje="Cuando pases por un lugar, registralo acá con una nota o una foto."
+          />
+        ) : (
+          <>
+            <EtiquetaSeccion className="mt-2">Tus visitas</EtiquetaSeccion>
+            {visitas.map((visita) => (
+              <Tarjeta key={visita.id}>
+                <View className="flex-row items-start justify-between gap-3">
+                  <Text className="flex-1 text-lg font-semibold text-texto">
+                    {nombreDe(visita.lugarId)}
+                  </Text>
+                  {!visita.sincronizada ? (
+                    <View className="flex-row items-center gap-1 rounded-full bg-advertencia-claro px-2.5 py-1">
+                      <Ionicons name="cloud-upload-outline" size={16} color={colores.advertencia} />
+                      <Text className="text-sm font-medium text-advertencia">Pendiente de subir</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <View className="flex-row items-center gap-2">
+                  <Ionicons name="calendar-outline" size={16} color={colores["texto-suave"]} />
+                  <Text className="text-sm text-texto-suave">
+                    {new Date(visita.fechaHora).toLocaleString("es-AR", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </Text>
+                </View>
+                {visita.fotoUri ? (
+                  <Image
+                    source={{ uri: visita.fotoUri }}
+                    contentFit="cover"
+                    accessibilityLabel={`Foto de la visita a ${nombreDe(visita.lugarId)}`}
+                    style={{ width: "100%", aspectRatio: 4 / 3, borderRadius: radios.control }}
+                  />
+                ) : null}
+                {visita.nota ? <Text className="text-base text-texto">{visita.nota}</Text> : null}
+              </Tarjeta>
+            ))}
           </>
         )}
       </ScrollView>
-    </Pantalla>  );
+    </Pantalla>
+  );
 }
 
-// Mismo aspecto que el Boton secundario, con ícono arriba del texto.
-function BotonFoto({
-  icono,
-  titulo,
-  descripcion,
-  onPress,
+// Sin tildes ni mayúsculas, para que "colon" encuentre "Colón".
+function normalizar(texto: string) {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+const MAX_SUGERENCIAS = 5;
+
+// Elegir el lugar de la visita: buscador + pocas filas, en vez de un botón por
+// lugar (con todo el catálogo la lista era larguísima). Elegido, se colapsa.
+function SelectorLugar({
+  lugares,
+  elegido,
+  onElegir,
 }: {
-  icono: "camera-outline" | "images-outline";
-  titulo: string;
-  descripcion: string;
-  onPress: () => void;
+  lugares: Lugar[];
+  elegido: string | null;
+  onElegir: (id: string | null) => void;
 }) {
+  const colores = useColores();
+  const [busqueda, setBusqueda] = useState("");
+
+  if (lugares.length === 0) {
+    return (
+      <Aviso tono="advertencia" icono="cloud-offline-outline">
+        No pudimos cargar los lugares. Probá de nuevo con señal.
+      </Aviso>
+    );
+  }
+
+  const lugarElegido = lugares.find((l) => l.id === elegido);
+  if (lugarElegido) {
+    return (
+      <View className="gap-1.5">
+        <Text className="text-sm font-medium text-texto-suave">¿Dónde estuviste?</Text>
+        <View className="min-h-12 flex-row items-center gap-3 rounded-control border-2 border-primario bg-primario-claro pl-4">
+          <Ionicons name="location" size={20} color={colores.primario} />
+          <Text className="flex-1 text-base font-semibold text-texto">{lugarElegido.nombre}</Text>
+          <Pressable
+            onPress={() => onElegir(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Cambiar el lugar elegido"
+            className="min-h-12 justify-center px-4 active:opacity-70"
+          >
+            <Text className="text-base font-bold text-primario">Cambiar</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  const termino = normalizar(busqueda.trim());
+  const coincidencias = termino
+    ? lugares.filter((l) => normalizar(l.nombre).includes(termino))
+    : lugares;
+  const visibles = coincidencias.slice(0, MAX_SUGERENCIAS);
+  const ocultos = coincidencias.length - visibles.length;
+
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={descripcion}
-      className="min-h-20 flex-1 items-center justify-center gap-1 rounded-xl border border-borde bg-superficie px-3 py-3 active:opacity-80"
-    >
-      <Ionicons name={icono} size={28} color={colores.primario} />
-      <Text className="text-base font-bold text-primario">{titulo}</Text>
-    </Pressable>
+    <View className="gap-2">
+      <Campo
+        etiqueta="¿Dónde estuviste?"
+        value={busqueda}
+        onChangeText={setBusqueda}
+        placeholder="Buscá el lugar por nombre"
+        autoCorrect={false}
+        returnKeyType="search"
+      />
+      {visibles.length === 0 ? (
+        <Text className="text-base text-texto-suave">No hay lugares con ese nombre.</Text>
+      ) : (
+        <View className="overflow-hidden rounded-control border border-borde">
+          {visibles.map((l, indice) => (
+            <Pressable
+              key={l.id}
+              onPress={() => {
+                onElegir(l.id);
+                setBusqueda("");
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Elegir ${l.nombre}`}
+              className={`min-h-12 flex-row items-center gap-3 bg-superficie px-4 py-3 active:bg-primario-claro ${
+                indice > 0 ? "border-t border-borde" : ""
+              }`}
+            >
+              <Ionicons name="location-outline" size={20} color={colores["texto-suave"]} />
+              <Text className="flex-1 text-base text-texto">{l.nombre}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+      {ocultos > 0 ? (
+        <Text className="text-sm text-texto-suave">
+          Y {ocultos} {ocultos === 1 ? "lugar más" : "lugares más"}: escribí para encontrarlo.
+        </Text>
+      ) : null}
+    </View>
   );
 }

@@ -2,9 +2,12 @@ import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 
+import { Cargando } from '@/components/Cargando';
+import { EstadoVacio } from '@/components/EstadoVacio';
+import { EtiquetaSeccion } from '@/components/EtiquetaSeccion';
 import { FiltroCategorias } from '@/components/FiltroCategorias';
 import { Tarjeta } from '@/components/Tarjeta';
 import { useSesion } from '@/estado/sesion';
@@ -14,7 +17,9 @@ import { obtenerLugares } from '@/servicios/lugares';
 import type { Categoria } from '@/tipos/categoria';
 import type { Favorito } from '@/tipos/favorito';
 import type { Lugar } from '@/tipos/lugar';
-import colores from '@/tema/colores';
+import { ESTILO_MAPA_OSCURO } from '@/tema/estiloMapaOscuro';
+import { useColores, useEsOscuro } from '@/tema/useColores';
+import radios from '@/tema/radios';
 
 // Centro de Colón, con zoom suficiente para ver la ciudad y el Molino Forclaz.
 const REGION_COLON: Region = {
@@ -29,6 +34,8 @@ const REGION_COLON: Region = {
 const ALTURAS_PANEL = [0.25, 0.5, 0.9];
 
 export default function Mapa() {
+  const colores = useColores();
+  const esOscuro = useEsOscuro();
   const { usuario } = useSesion();
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -65,7 +72,8 @@ export default function Mapa() {
 
   // Se filtra acá y no en el servidor: el cambio es instantáneo y anda sin señal.
   const lugaresVisibles = categoriaId ? lugares.filter((lugar) => lugar.categoriaId === categoriaId) : lugares;
-  const colorDe = (id: string) => categorias.find((categoria) => categoria.id === id)?.color;
+  const categoriaDe = (id: string) => categorias.find((categoria) => categoria.id === id);
+  const verDetalle = (lugarId: string) => router.push({ pathname: '/lugar/[id]', params: { id: lugarId } });
   const favoritoDe = (lugarId: string) => favoritos.find((favorito) => favorito.lugarId === lugarId);
 
   async function alternarFavorito(lugarId: string) {
@@ -106,6 +114,9 @@ export default function Mapa() {
         <MapView
           style={StyleSheet.absoluteFill}
           initialRegion={REGION_COLON}
+          // Android (Google) usa el estilo; iOS (Apple Maps) sigue el tema solo.
+          customMapStyle={esOscuro ? ESTILO_MAPA_OSCURO : []}
+          userInterfaceStyle={esOscuro ? 'dark' : 'light'}
           onMapReady={() => setMapaListo(true)}
           // Solo después de onMapReady: antes, react-native-maps en Android se
           // cae (NullPointerException en applyBaseMapPadding) porque el mapa
@@ -121,7 +132,9 @@ export default function Mapa() {
               }}
               title={lugar.nombre}
               description={lugar.descripcionCorta}
-              pinColor={colorDe(lugar.categoriaId)}
+              pinColor={categoriaDe(lugar.categoriaId)?.color}
+              // Tocar el globito del marcador abre el detalle, igual que la tarjeta.
+              onCalloutPress={() => verDetalle(lugar.id)}
             />
           ))}
         </MapView>
@@ -135,18 +148,18 @@ export default function Mapa() {
           enableDynamicSizing={false}
           backgroundStyle={{
             backgroundColor: colores.superficie,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            borderTopLeftRadius: radios.hoja,
+            borderTopRightRadius: radios.hoja,
           }}
           handleIndicatorStyle={{ backgroundColor: colores.borde, width: 48 }}
         >
-          <Text className="px-5 pb-2 text-sm font-semibold uppercase text-texto-suave">
+          <EtiquetaSeccion className="px-5 pb-2">
             {cargando ? 'Cargando lugares…' : `${lugaresVisibles.length} lugares`}
-          </Text>
+          </EtiquetaSeccion>
           {cargando ? (
-            <ActivityIndicator size="large" className="mt-6" />
+            <Cargando />
           ) : error ? (
-            <Text className="px-5 pt-4 text-base text-error">{error}</Text>
+            <EstadoVacio tono="error" icono="alert-circle-outline" titulo="No pudimos cargar los lugares" mensaje={error} />
           ) : (
             <BottomSheetFlatList
               data={lugaresVisibles}
@@ -157,25 +170,42 @@ export default function Mapa() {
                 paddingHorizontal: 20,
                 paddingBottom: 24,
               }}
-              ListEmptyComponent={<Text className="text-base text-texto-suave">No hay lugares en esta categoría.</Text>}
+              ListEmptyComponent={<EstadoVacio icono="location-outline" titulo="No hay lugares en esta categoría" />}
               renderItem={({ item }) => {
                 const esFavorito = Boolean(favoritoDe(item.id));
+                const categoria = categoriaDe(item.categoriaId);
                 return (
-                  <Tarjeta className="flex-row items-start justify-between">
-                    <View className="flex-1 gap-2">
+                  <Tarjeta className="flex-row items-center gap-1 py-2 pr-1">
+                    {/* Toda la tarjeta abre el detalle, menos el corazón. */}
+                    <Pressable
+                      onPress={() => verDetalle(item.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Ver detalle de ${item.nombre}`}
+                      className="flex-1 gap-1 py-2 active:opacity-70"
+                    >
                       <Text className="text-base font-semibold text-texto">{item.nombre}</Text>
-                      <Text className="text-sm text-texto-suave">{item.descripcionCorta}</Text>
-                    </View>
+                      <Text className="text-sm text-texto-suave" numberOfLines={2}>
+                        {item.descripcionCorta}
+                      </Text>
+                      {categoria ? (
+                        <View className="flex-row items-center gap-2 pt-1">
+                          <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: categoria.color }} />
+                          <Text className="text-sm text-texto-suave">{categoria.nombre}</Text>
+                        </View>
+                      ) : null}
+                    </Pressable>
+                    {/* 48 px de área táctil, como el resto de la app (una mano y al sol). */}
                     <Pressable
                       onPress={() => alternarFavorito(item.id)}
                       accessibilityRole="button"
-                      accessibilityLabel={esFavorito ? 'Quitar de favoritos' : 'Marcar como favorito'}
-                      className="p-1"
+                      accessibilityLabel={esFavorito ? `Quitar ${item.nombre} de favoritos` : `Guardar ${item.nombre} en favoritos`}
+                      accessibilityState={{ selected: esFavorito }}
+                      className="h-12 w-12 items-center justify-center rounded-full active:bg-acento-claro"
                     >
                       <Ionicons
                         name={esFavorito ? 'heart' : 'heart-outline'}
-                        size={22}
-                        color={esFavorito ? colores.error : colores['texto-suave']}
+                        size={26}
+                        color={esFavorito ? colores.acento : colores['texto-suave']}
                       />
                     </Pressable>
                   </Tarjeta>

@@ -1,5 +1,11 @@
-import { Pantalla } from '@/components/Pantalla';
+import { Aviso } from '@/components/Aviso';
+import { Boton } from '@/components/Boton';
+import { Cargando } from '@/components/Cargando';
+import { Chip } from '@/components/Chip';
+import { EstadoVacio } from '@/components/EstadoVacio';
+import { EtiquetaSeccion } from '@/components/EtiquetaSeccion';
 import { Tarjeta } from '@/components/Tarjeta';
+import { Titulo } from '@/components/Titulo';
 import { useSesion } from '@/estado/sesion';
 import {
   cancelarAvisoEvento,
@@ -13,13 +19,17 @@ import {
   obtenerEventosGuardados,
   quitarEventoGuardado,
 } from '@/servicios/eventos';
+import { useColores } from '@/tema/useColores';
 import type { Evento } from '@/tipos/evento';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 
 const DIAS_SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+// Se muestran de a tandas; "Ver más" suma otra.
 const MAX_EVENTOS_VISIBLES = 5;
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 function claveFecha(fecha: Date): string {
   const anio = fecha.getFullYear();
@@ -31,6 +41,21 @@ function claveFecha(fecha: Date): string {
 function formatearFecha(fechaHora: string): string {
   const [anio, mes, dia] = fechaHora.slice(0, 10).split('-');
   return `${dia}/${mes}/${anio}`;
+}
+
+// La API manda la hora de Argentina con su zona ("2026-10-23T18:00:00-03:00"):
+// cortar el texto da el día y la hora locales del evento, esté donde esté el teléfono.
+function diaYMes(fechaHora: string): { dia: string; mes: string } {
+  return { dia: String(Number(fechaHora.slice(8, 10))), mes: MESES_CORTOS[Number(fechaHora.slice(5, 7)) - 1] };
+}
+
+function hora(fechaHora: string): string {
+  return fechaHora.slice(11, 16);
+}
+
+function textoPrecio(precio: number | null): string | null {
+  if (precio === null) return null;
+  return precio === 0 ? 'Gratis' : `$ ${new Intl.NumberFormat('es-AR').format(precio)}`;
 }
 
 function eventosEnFecha(eventos: Evento[], fecha: string): Evento[] {
@@ -48,6 +73,7 @@ function tituloMes(fecha: Date): string {
 
 export default function Agenda() {
   const sesion = useSesion();
+  const colores = useColores();
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +95,12 @@ export default function Agenda() {
     return new Date(hoy.getFullYear(), hoy.getMonth(), 1);
   });
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string | null>(null);
+  const [cantidadVisible, setCantidadVisible] = useState(MAX_EVENTOS_VISIBLES);
+
+  // Al cambiar de día (o volver a "próximos") se arranca de nuevo por la primera tanda.
+  useEffect(() => {
+    setCantidadVisible(MAX_EVENTOS_VISIBLES);
+  }, [fechaSeleccionada]);
 
   useEffect(() => {
     let vigente = true;
@@ -273,7 +305,8 @@ export default function Agenda() {
   const eventosDelPeriodo = fechaSeleccionada
     ? eventosEnFecha(eventosFuturos, fechaSeleccionada)
     : eventosFuturos;
-  const eventosVisibles = eventosDelPeriodo.slice(0, MAX_EVENTOS_VISIBLES);
+  const eventosVisibles = eventosDelPeriodo.slice(0, cantidadVisible);
+  const eventosOcultos = eventosDelPeriodo.length - eventosVisibles.length;
 
   const primerDiaMes = new Date(mesVisible.getFullYear(), mesVisible.getMonth(), 1);
   const diasEnMes = new Date(mesVisible.getFullYear(), mesVisible.getMonth() + 1, 0).getDate();
@@ -310,15 +343,17 @@ export default function Agenda() {
   }
 
   return (
-    <Pantalla>
+    <View className="flex-1 bg-fondo">
       <FlatList
-        data={eventosVisibles}
+        data={cargando ? [] : eventosVisibles}
         keyExtractor={(evento) => evento.id}
         className="flex-1"
-        contentContainerClassName="gap-3 pb-6"
+        contentContainerClassName="gap-3 px-5 py-5"
         ListHeaderComponent={
           <View className="gap-4 pb-1">
-            <Tarjeta className="gap-4">
+            <Titulo subtitulo="Qué pasa en Colón: fiestas, ferias y espectáculos.">Agenda</Titulo>
+
+            <Tarjeta className="gap-3">
               <View className="flex-row items-center justify-between">
                 <Pressable
                   accessibilityRole="button"
@@ -326,22 +361,20 @@ export default function Agenda() {
                   accessibilityState={{ disabled: !puedeIrAlMesAnterior }}
                   disabled={!puedeIrAlMesAnterior}
                   onPress={() => cambiarMes(-1)}
-                  className="h-10 w-10 items-center justify-center rounded-full active:opacity-70"
+                  className={`h-12 w-12 items-center justify-center rounded-full active:bg-primario-claro ${
+                    puedeIrAlMesAnterior ? '' : 'opacity-30'
+                  }`}
                 >
-                  <Text
-                    className={`text-2xl ${puedeIrAlMesAnterior ? 'text-texto' : 'text-texto-suave'}`}
-                  >
-                    ‹
-                  </Text>
+                  <Ionicons name="chevron-back" size={24} color={colores.texto} />
                 </Pressable>
-                <Text className="text-base font-semibold text-texto">{tituloMes(mesVisible)}</Text>
+                <Text className="text-lg font-semibold text-texto">{tituloMes(mesVisible)}</Text>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Mes siguiente"
                   onPress={() => cambiarMes(1)}
-                  className="h-10 w-10 items-center justify-center rounded-full active:opacity-70"
+                  className="h-12 w-12 items-center justify-center rounded-full active:bg-primario-claro"
                 >
-                  <Text className="text-2xl text-texto">›</Text>
+                  <Ionicons name="chevron-forward" size={24} color={colores.texto} />
                 </Pressable>
               </View>
 
@@ -373,36 +406,43 @@ export default function Agenda() {
                     <Pressable
                       key={fechaClave}
                       accessibilityRole="button"
-                      accessibilityLabel={`${dia} de ${tituloMes(mesVisible)}${tieneEventos ? ', hay eventos' : ''}`}
+                      accessibilityLabel={`${dia} de ${tituloMes(mesVisible)}${esHoy ? ', hoy' : ''}${tieneEventos ? ', hay eventos' : ''}`}
                       accessibilityState={{ selected: seleccionada, disabled: esPasada }}
                       disabled={esPasada}
                       onPress={() => setFechaSeleccionada(fechaClave)}
                       className="w-[14.285%] items-center py-1"
                     >
                       <View
-                        className={`h-9 w-9 items-center justify-center rounded-full ${
+                        // Radio en número: con rounded-full el fondo salía cuadrado en Android.
+                        style={{ borderRadius: 20 }}
+                        className={`h-10 w-10 items-center justify-center ${
                           seleccionada
                             ? 'bg-primario'
                             : esHoy
-                              ? 'border border-primario'
-                              : ''
+                              ? 'border-2 border-primario'
+                              : tieneEventos
+                                ? 'bg-primario-claro'
+                                : ''
                         }`}
                       >
                         <Text
-                          className={`text-sm ${
+                          className={`text-base ${
                             seleccionada
-                              ? 'font-semibold text-white'
+                              ? 'font-bold text-sobre-primario'
                               : esPasada
-                                ? 'text-texto-suave'
-                                : 'text-texto'
+                                ? 'text-texto-suave opacity-60'
+                                : tieneEventos || esHoy
+                                  ? 'font-semibold text-texto'
+                                  : 'text-texto'
                           }`}
                         >
                           {dia}
                         </Text>
                       </View>
                       <View
-                        className={`mt-1 h-1 w-1 rounded-full ${
-                          tieneEventos ? (seleccionada ? 'bg-white' : 'bg-primario') : 'bg-transparent'
+                        style={{ borderRadius: 3 }}
+                        className={`mt-1 h-1.5 w-1.5 ${
+                          tieneEventos ? 'bg-primario' : 'bg-transparent'
                         }`}
                       />
                     </Pressable>
@@ -410,143 +450,151 @@ export default function Agenda() {
                 })}
               </View>
 
-              <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-texto-suave">• Fechas con eventos</Text>
+              <View className="min-h-8 flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2">
+                  <View style={{ borderRadius: 3 }} className="h-1.5 w-1.5 bg-primario" />
+                  <Text className="text-sm text-texto-suave">Días con eventos</Text>
+                </View>
                 {fechaSeleccionada ? (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Ver próximos eventos"
+                    accessibilityLabel="Ver todos los próximos eventos"
                     onPress={() => setFechaSeleccionada(null)}
-                    className="py-1"
+                    hitSlop={8}
+                    className="flex-row items-center gap-1 py-1"
                   >
-                    <Text className="text-sm font-semibold text-primario">Ver próximos</Text>
+                    <Ionicons name="close-circle-outline" size={18} color={colores.primario} />
+                    <Text className="text-sm font-bold text-primario">Ver todos</Text>
                   </Pressable>
                 ) : null}
               </View>
             </Tarjeta>
 
-            <View className="flex-row items-center justify-between">
-              <Text className="text-base font-semibold text-texto">
-                {fechaSeleccionada
-                  ? `Eventos del ${formatearFecha(`${fechaSeleccionada}T00:00:00`)}`
-                  : 'Próximos eventos'}
-              </Text>
-              <Text className="text-sm text-texto-suave">
-                {cargando ? 'Cargando...' : `${eventosVisibles.length} de ${eventosDelPeriodo.length}`}
-              </Text>
-            </View>
-            {error ? (
-              <Text accessibilityRole="alert" className="text-sm text-error">
-                {error}
-              </Text>
-            ) : null}
-            {errorEventosGuardados ? (
-              <Text accessibilityRole="alert" className="text-sm text-error">
-                {errorEventosGuardados}
-              </Text>
-            ) : null}
-            {errorAvisoLocal ? (
-              <Text accessibilityRole="alert" className="text-sm text-error">
-                {errorAvisoLocal}
-              </Text>
-            ) : null}
+            {error ? <Aviso tono="error">{error}</Aviso> : null}
+            {errorEventosGuardados ? <Aviso tono="error">{errorEventosGuardados}</Aviso> : null}
+            {errorAvisoLocal ? <Aviso tono="advertencia">{errorAvisoLocal}</Aviso> : null}
+
+            <EtiquetaSeccion className="mt-2">
+              {fechaSeleccionada
+                ? `Eventos del ${formatearFecha(`${fechaSeleccionada}T00:00:00`)}`
+                : 'Próximos eventos'}
+              {!cargando && eventosDelPeriodo.length > 0 ? ` · ${eventosDelPeriodo.length}` : ''}
+            </EtiquetaSeccion>
+            {cargando ? <Cargando texto="Cargando eventos..." /> : null}
           </View>
         }
         ListEmptyComponent={
-          <Text className="text-sm text-texto-suave">
-            {cargando
-              ? 'Cargando eventos...'
-              : fechaSeleccionada
-                ? 'No hay eventos para este día.'
-                : 'No hay eventos próximos.'}
-          </Text>
-        }
-        renderItem={({ item }) => (
-          <Tarjeta>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Ver detalles de ${item.titulo}`}
-              onPress={() =>
-                router.push({ pathname: '/evento/[eventoId]', params: { eventoId: item.id } })
+          cargando || error ? null : (
+            <EstadoVacio
+              icono="calendar-outline"
+              titulo={fechaSeleccionada ? 'No hay eventos este día' : 'No hay eventos próximos'}
+              mensaje={
+                fechaSeleccionada
+                  ? 'Probá con otro día marcado en el calendario.'
+                  : 'Cuando se carguen fiestas, ferias o espectáculos, van a aparecer acá.'
               }
-              className="gap-2 active:opacity-80"
-            >
-              <Text className="text-base font-semibold text-texto">{item.titulo}</Text>
-              <Text className="text-sm text-texto-suave">{item.descripcion}</Text>
-              <Text className="text-sm text-texto-suave">
-                Inicio: {formatearFecha(item.inicio)}
-              </Text>
-              <Text className="text-sm text-texto-suave">
-                Precio:{' '}
-                {item.precio === 0
-                  ? 'Gratis'
-                  : item.precio === null
-                    ? 'Sin precio informado'
-                    : `$${item.precio}`}
-              </Text>
-              <Text className="text-sm font-semibold text-primario">Ver detalles</Text>
-            </Pressable>
-            {(item.estado === 'programado' || item.estado === 'suspendido') && !sesion.cargando ? (
+            />
+          )
+        }
+        ListFooterComponent={
+          eventosOcultos > 0 ? (
+            <Boton
+              titulo={`Ver más eventos (${eventosOcultos})`}
+              variante="secundario"
+              icono="chevron-down"
+              onPress={() => setCantidadVisible((actual) => actual + MAX_EVENTOS_VISIBLES)}
+              className="mt-1"
+            />
+          ) : null
+        }
+        renderItem={({ item }) => {
+          const { dia, mes } = diaYMes(item.inicio);
+          const guardado = idsEventosGuardados.has(item.id);
+          const actualizando = eventosActualizandose.has(item.id);
+          const precio = textoPrecio(item.precio);
+          const sePuedeGuardar = item.estado === 'programado' || item.estado === 'suspendido';
+
+          return (
+            <Tarjeta className="gap-3">
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={
-                  sesion.usuario
-                    ? idsEventosGuardados.has(item.id)
-                      ? `Quitar ${item.titulo} de eventos guardados`
-                      : `Guardar ${item.titulo}`
-                    : `Ingresá para guardar ${item.titulo}`
+                accessibilityLabel={`Ver detalles de ${item.titulo}`}
+                onPress={() =>
+                  router.push({ pathname: '/evento/[eventoId]', params: { eventoId: item.id } })
                 }
-                accessibilityState={{
-                  disabled:
-                    Boolean(sesion.usuario) &&
-                    (cargandoEventosGuardados || eventosActualizandose.has(item.id)),
-                  selected: idsEventosGuardados.has(item.id),
-                }}
-                disabled={
-                  Boolean(sesion.usuario) &&
-                  (cargandoEventosGuardados || eventosActualizandose.has(item.id))
-                }
-                onPress={() => alternarEventoGuardado(item)}
-                className="min-h-11 flex-row items-center justify-center rounded-xl border border-borde px-4 active:opacity-80"
+                className="flex-row gap-3 active:opacity-70"
               >
-                <Text className="text-sm font-semibold text-primario">
-                  {!sesion.usuario
-                    ? 'Ingresá para guardar'
-                    : eventosActualizandose.has(item.id)
-                      ? 'Actualizando...'
-                      : cargandoEventosGuardados
-                        ? 'Cargando guardados...'
-                        : idsEventosGuardados.has(item.id)
-                          ? 'Quitar de guardados'
-                          : 'Guardar evento'}
-                </Text>
+                {/* Bloque de fecha, como en una agenda de papel. */}
+                <View className="h-16 w-14 items-center justify-center rounded-control bg-primario-claro">
+                  <Text className="text-2xl font-bold leading-7 text-primario">{dia}</Text>
+                  <Text className="text-xs font-semibold uppercase text-primario">{mes}</Text>
+                </View>
+                <View className="flex-1 gap-1">
+                  <Text className="text-base font-semibold text-texto">{item.titulo}</Text>
+                  <Text className="text-sm text-texto-suave" numberOfLines={2}>
+                    {item.descripcion}
+                  </Text>
+                  <View className="mt-1 flex-row flex-wrap gap-2">
+                    <Chip icono="time-outline" texto={`${hora(item.inicio)} h`} />
+                    {precio ? (
+                      <Chip icono="ticket-outline" texto={precio} tono={item.precio === 0 ? 'exito' : 'neutro'} />
+                    ) : null}
+                    {item.estado === 'suspendido' ? (
+                      <Chip icono="rainy-outline" texto="Suspendido" tono="advertencia" />
+                    ) : null}
+                    {item.estado === 'cancelado' ? (
+                      <Chip icono="close-circle-outline" texto="Cancelado" tono="error" />
+                    ) : null}
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colores['texto-suave']} />
               </Pressable>
-            ) : null}
-            {item.estado === 'programado' && idsEventosGuardados.has(item.id) ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={
-                  avisosLocales.has(item.id)
-                    ? `Desactivar notificaciones para ${item.titulo}`
-                    : `Activar notificaciones para ${item.titulo}`
-                }
-                accessibilityState={{ disabled: avisosActualizandose.has(item.id) }}
-                disabled={avisosActualizandose.has(item.id)}
-                onPress={() => alternarAvisoLocal(item)}
-                className="min-h-11 flex-row items-center justify-center rounded-xl border border-borde px-2 active:opacity-80"
-              >
-                <Text numberOfLines={1} className="text-xs font-semibold text-primario">
-                  {avisosActualizandose.has(item.id)
-                    ? 'Actualizando aviso...'
-                    : avisosLocales.has(item.id)
-                      ? 'Desactivar notificaciones'
-                      : 'Activar notificaciones'}
-                </Text>
-              </Pressable>
-            ) : null}
-          </Tarjeta>
-        )}
+
+              {sePuedeGuardar && !sesion.cargando ? (
+                !sesion.usuario ? (
+                  <Boton
+                    titulo="Ingresá para guardarlo"
+                    variante="secundario"
+                    icono="bookmark-outline"
+                    accessibilityLabel={`Ingresá para guardar ${item.titulo}`}
+                    onPress={() => alternarEventoGuardado(item)}
+                  />
+                ) : (
+                  <View className="flex-row gap-2">
+                    <Boton
+                      titulo={guardado ? 'Guardado' : 'Guardar'}
+                      variante={guardado ? 'primario' : 'secundario'}
+                      icono={guardado ? 'bookmark' : 'bookmark-outline'}
+                      accessibilityLabel={
+                        guardado ? `Quitar ${item.titulo} de eventos guardados` : `Guardar ${item.titulo}`
+                      }
+                      cargando={actualizando}
+                      deshabilitado={cargandoEventosGuardados}
+                      onPress={() => alternarEventoGuardado(item)}
+                      className="flex-1"
+                    />
+                    {item.estado === 'programado' && guardado ? (
+                      <Boton
+                        titulo={avisosLocales.has(item.id) ? 'Aviso activo' : 'Avisarme'}
+                        variante={avisosLocales.has(item.id) ? 'primario' : 'secundario'}
+                        icono={avisosLocales.has(item.id) ? 'notifications' : 'notifications-outline'}
+                        accessibilityLabel={
+                          avisosLocales.has(item.id)
+                            ? `Desactivar notificaciones para ${item.titulo}`
+                            : `Activar notificaciones para ${item.titulo}`
+                        }
+                        cargando={avisosActualizandose.has(item.id)}
+                        onPress={() => alternarAvisoLocal(item)}
+                        className="flex-1"
+                      />
+                    ) : null}
+                  </View>
+                )
+              ) : null}
+            </Tarjeta>
+          );
+        }}
       />
-    </Pantalla>
+    </View>
   );
 }

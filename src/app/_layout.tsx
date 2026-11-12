@@ -1,15 +1,18 @@
 import "../../global.css";
 import { setAudioModeAsync } from "expo-audio";
 import { StatusBar } from "expo-status-bar";
+import * as SystemUI from "expo-system-ui";
 
 import { router, Stack, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { useEffect, useRef } from "react";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { Encabezado } from "@/components/Encabezado";
 import { SesionProvider } from "@/estado/sesion";
 import { cancelarAvisoEvento } from "@/servicios/avisosEventos";
+import { useColores, useVariablesTema } from "@/tema/useColores";
 
 type DatosNotificacionEvento = {
   tipo: "evento-estado" | "evento-recordatorio";
@@ -38,6 +41,13 @@ function leerDatosNotificacion(
 // (@gorhom/bottom-sheet) para reconocer el gesto de arrastrar.
 export default function RootLayout() {
   const pathname = usePathname();
+  const colores = useColores();
+  const variablesTema = useVariablesTema();
+
+  // Fondo de la ventana nativa (se ve un instante al abrir y al rotar).
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(colores.fondo).catch(() => {});
+  }, [colores.fondo]);
   const respuestasProcesadas = useRef(new Set<string>());
   const rutaConVolver =
     pathname === "/login" || pathname.startsWith("/lugar/") || pathname.startsWith("/evento/");
@@ -128,11 +138,15 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* La franja de arriba es primario-oscuro en los dos temas: texto claro. */}
       <StatusBar style="light" />
-      <SesionProvider>
-        <Encabezado onBack={rutaConVolver ? volver : undefined} />
-        <Stack screenOptions={{ headerShown: false }} />
-      </SesionProvider>
+      {/* Variables de color del tema del teléfono: las leen todas las clases. */}
+      <View style={[{ flex: 1 }, variablesTema]}>
+        <SesionProvider>
+          <Encabezado onBack={rutaConVolver ? volver : undefined} />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colores.fondo } }} />
+        </SesionProvider>
+      </View>
     </GestureHandlerRootView>
   );
 }

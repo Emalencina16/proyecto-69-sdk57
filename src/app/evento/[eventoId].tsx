@@ -1,30 +1,35 @@
-import { Pantalla } from '@/components/Pantalla';
+import { Aviso } from '@/components/Aviso';
+import { Cargando } from '@/components/Cargando';
+import { Chip } from '@/components/Chip';
+import { EstadoVacio } from '@/components/EstadoVacio';
+import { EtiquetaSeccion } from '@/components/EtiquetaSeccion';
+import { FilaAccion } from '@/components/FilaAccion';
 import { Tarjeta } from '@/components/Tarjeta';
 import { cancelarAvisoEvento } from '@/servicios/avisosEventos';
 import { obtenerEvento } from '@/servicios/eventos';
 import { obtenerLugar } from '@/servicios/lugares';
 import type { EstadoEvento, Evento } from '@/tipos/evento';
 import type { Lugar } from '@/tipos/lugar';
-import colores from '@/tema/colores';
+import { useColores } from '@/tema/useColores';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { Linking, ScrollView, Text, View } from 'react-native';
 
-const ETIQUETAS_ESTADO: Record<EstadoEvento, string> = {
-  programado: 'Programado',
-  suspendido: 'Suspendido',
-  cancelado: 'Cancelado',
-  finalizado: 'Finalizado',
+// Solo se avisa lo que cambia los planes; "programado" es lo normal.
+const AVISO_ESTADO: Partial<Record<EstadoEvento, { tono: 'advertencia' | 'error'; texto: string }>> = {
+  suspendido: { tono: 'advertencia', texto: 'Este evento está suspendido. Revisá antes de ir.' },
+  cancelado: { tono: 'error', texto: 'Este evento se canceló.' },
+  finalizado: { tono: 'advertencia', texto: 'Este evento ya terminó.' },
 };
 
-const FORMATO_FECHA_HORA = new Intl.DateTimeFormat('es-AR', {
+const ALTO_PORTADA = 220;
+
+const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', {
   weekday: 'long',
   day: 'numeric',
   month: 'long',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
 });
 
 const FORMATO_PRECIO = new Intl.NumberFormat('es-AR', {
@@ -33,11 +38,27 @@ const FORMATO_PRECIO = new Intl.NumberFormat('es-AR', {
   maximumFractionDigits: 0,
 });
 
-function formatearFechaHora(fecha: string): string {
-  return FORMATO_FECHA_HORA.format(new Date(fecha));
+// La API manda la hora de Argentina con su zona ("…T18:00:00-03:00"): el día
+// sale de la parte de fecha (mediodía, para que ningún huso lo corra) y la hora
+// se corta del texto, igual que en la Agenda.
+function dia(fechaHora: string): string {
+  const texto = FORMATO_FECHA.format(new Date(`${fechaHora.slice(0, 10)}T12:00:00`));
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function hora(fechaHora: string): string {
+  return fechaHora.slice(11, 16);
+}
+
+// "Viernes, 23 de octubre · 18:00 a 21:00 h", o dos renglones si dura varios días.
+function renglonesHorario(inicio: string, fin: string | null): string[] {
+  if (!fin) return [`${dia(inicio)} · desde las ${hora(inicio)} h`];
+  if (fin.slice(0, 10) === inicio.slice(0, 10)) return [`${dia(inicio)} · ${hora(inicio)} a ${hora(fin)} h`];
+  return [`Desde: ${dia(inicio)}, ${hora(inicio)} h`, `Hasta: ${dia(fin)}, ${hora(fin)} h`];
 }
 
 export default function DetalleEvento() {
+  const colores = useColores();
   const { eventoId } = useLocalSearchParams<{ eventoId: string }>();
   const [resultado, setResultado] = useState<{
     eventoId: string;
@@ -107,107 +128,124 @@ export default function DetalleEvento() {
   const errorAviso = resultado?.eventoId === eventoId ? resultado.errorAviso : null;
   const coordenadas = evento?.coordenadas ?? lugar?.coordenadas ?? null;
 
+  const aviso = evento ? AVISO_ESTADO[evento.estado] : undefined;
+  const precio =
+    evento?.precio === null || evento?.precio === undefined
+      ? null
+      : evento.precio === 0
+        ? 'Gratis'
+        : FORMATO_PRECIO.format(evento.precio);
+  const direccion = lugar?.direccion ?? evento?.direccionLibre ?? null;
+
   return (
-    <Pantalla>
+    <View className="flex-1 bg-fondo">
       {cargando ? (
-        <View className="flex-1 items-center justify-center gap-3">
-          <ActivityIndicator size="large" color={colores.primario} />
-          <Text className="text-sm text-texto-suave">Cargando evento...</Text>
-        </View>
+        <Cargando texto="Cargando evento..." />
       ) : error || !evento ? (
-        <Text accessibilityRole="alert" className="pt-4 text-base text-error">
-          {error ?? 'No se encontró el evento.'}
-        </Text>
+        <EstadoVacio
+          tono="error"
+          icono="alert-circle-outline"
+          titulo="No pudimos abrir este evento"
+          mensaje={error ?? 'No se encontró el evento.'}
+        />
       ) : (
-        <ScrollView
-          className="flex-1"
-          contentContainerClassName="gap-4 pb-6"
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerClassName="pb-8" showsVerticalScrollIndicator={false}>
           {evento.imagenUrl ? (
             <Image
               source={{ uri: evento.imagenUrl }}
               contentFit="cover"
               accessibilityLabel={`Imagen de ${evento.titulo}`}
-              style={{
-                width: '100%',
-                height: 220,
-                borderRadius: 16,
-                backgroundColor: colores.superficie,
-              }}
+              style={{ width: '100%', height: ALTO_PORTADA, backgroundColor: colores['primario-claro'] }}
             />
-          ) : null}
+          ) : (
+            <View
+              style={{ height: ALTO_PORTADA * 0.6 }}
+              className="items-center justify-center bg-primario-claro"
+            >
+              <Ionicons name="calendar-outline" size={56} color={colores.primario} />
+            </View>
+          )}
 
-          <Tarjeta>
-            <Text className="text-2xl font-bold text-texto">{evento.titulo}</Text>
-            <Text className="text-sm font-semibold text-primario">
-              {ETIQUETAS_ESTADO[evento.estado]}
-            </Text>
+          <View className="gap-5 px-5 pt-5">
+            <View className="gap-3">
+              <Text accessibilityRole="header" className="text-3xl font-bold text-texto">
+                {evento.titulo}
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                <Chip icono="time-outline" texto={`${hora(evento.inicio)} h`} />
+                {precio ? (
+                  <Chip icono="ticket-outline" texto={precio} tono={evento.precio === 0 ? 'exito' : 'neutro'} />
+                ) : null}
+              </View>
+            </View>
+
+            {aviso ? (
+              <Aviso tono={aviso.tono} icono={evento.estado === 'suspendido' ? 'rainy-outline' : undefined}>
+                {aviso.texto}
+              </Aviso>
+            ) : null}
+
             <Text className="text-base leading-6 text-texto">{evento.descripcion}</Text>
-          </Tarjeta>
 
-          <Tarjeta>
-            <Text className="text-base font-semibold text-texto">Fecha y horario</Text>
-            <DatoDetalle etiqueta="Inicio" valor={formatearFechaHora(evento.inicio)} />
-            <DatoDetalle
-              etiqueta="Fin"
-              valor={evento.fin ? formatearFechaHora(evento.fin) : 'Hasta las 23:59 del mismo día'}
-            />
-          </Tarjeta>
+            <View className="gap-2">
+              <EtiquetaSeccion>Cuándo</EtiquetaSeccion>
+              <Tarjeta relleno={false}>
+                {renglonesHorario(evento.inicio, evento.fin).map((renglon, indice) => (
+                  <FilaAccion
+                    key={renglon}
+                    icono={indice === 0 ? 'calendar-outline' : 'flag-outline'}
+                    texto={renglon}
+                    separador={indice > 0}
+                  />
+                ))}
+              </Tarjeta>
+            </View>
 
-          <Tarjeta>
-            <Text className="text-base font-semibold text-texto">Ubicación</Text>
-            {lugar ? (
-              <>
-                <DatoDetalle etiqueta="Lugar" valor={lugar.nombre} />
-                <DatoDetalle etiqueta="Dirección" valor={lugar.direccion} />
-              </>
-            ) : evento.direccionLibre ? (
-              <DatoDetalle etiqueta="Dirección" valor={evento.direccionLibre} />
-            ) : evento.lugarId ? (
-              <DatoDetalle etiqueta="Lugar" valor={evento.lugarId} />
-            ) : (
-              <Text className="text-sm text-texto-suave">No se informó una dirección.</Text>
-            )}
-            {errorLugar ? (
-              <Text accessibilityRole="alert" className="text-sm text-error">
-                {errorLugar}
-              </Text>
-            ) : null}
-            {errorAviso ? (
-              <Text accessibilityRole="alert" className="text-sm text-error">
-                {errorAviso}
-              </Text>
-            ) : null}
-            {coordenadas ? (
-              <DatoDetalle
-                etiqueta="Coordenadas"
-                valor={`${coordenadas.latitud}, ${coordenadas.longitud}`}
-              />
-            ) : null}
-          </Tarjeta>
+            <View className="gap-2">
+              <EtiquetaSeccion>Dónde</EtiquetaSeccion>
+              {lugar || direccion || coordenadas ? (
+                <Tarjeta relleno={false}>
+                  {lugar ? (
+                    <FilaAccion
+                      icono="business-outline"
+                      texto={lugar.nombre}
+                      accion="Ver lugar"
+                      onPress={() => router.push({ pathname: '/lugar/[id]', params: { id: lugar.id } })}
+                    />
+                  ) : null}
+                  {direccion ? (
+                    <FilaAccion
+                      icono="location-outline"
+                      texto={direccion}
+                      accion={coordenadas ? 'Cómo llegar' : undefined}
+                      onPress={coordenadas ? () => abrirComoLlegar(coordenadas) : undefined}
+                      separador={Boolean(lugar)}
+                    />
+                  ) : coordenadas ? (
+                    <FilaAccion
+                      icono="location-outline"
+                      texto="Ver en el mapa"
+                      accion="Cómo llegar"
+                      onPress={() => abrirComoLlegar(coordenadas)}
+                      separador={Boolean(lugar)}
+                    />
+                  ) : null}
+                </Tarjeta>
+              ) : (
+                <Text className="text-base text-texto-suave">No se informó una dirección.</Text>
+              )}
+              {errorLugar ? <Aviso tono="advertencia">{errorLugar}</Aviso> : null}
+            </View>
 
-          <Tarjeta>
-            <Text className="text-base font-semibold text-texto">Precio</Text>
-            <Text className="text-sm text-texto-suave">
-              {evento.precio === null
-                ? 'Sin precio informado'
-                : evento.precio === 0
-                  ? 'Gratis'
-                  : FORMATO_PRECIO.format(evento.precio)}
-            </Text>
-          </Tarjeta>
+            {errorAviso ? <Aviso tono="advertencia">{errorAviso}</Aviso> : null}
+          </View>
         </ScrollView>
       )}
-    </Pantalla>
+    </View>
   );
 }
 
-function DatoDetalle({ etiqueta, valor }: { etiqueta: string; valor: string }) {
-  return (
-    <View className="gap-0.5">
-      <Text className="text-sm font-semibold text-texto">{etiqueta}</Text>
-      <Text className="text-sm text-texto-suave">{valor}</Text>
-    </View>
-  );
+// Abre Google Maps (app o web) con el recorrido hasta el evento.
+function abrirComoLlegar({ latitud, longitud }: { latitud: number; longitud: number }) {
+  void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitud},${longitud}`);
 }

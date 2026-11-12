@@ -1,14 +1,18 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Aviso } from '@/components/Aviso';
 import { Boton } from '@/components/Boton';
 import { Campo } from '@/components/Campo';
 import { useSesion } from '@/estado/sesion';
 import { iniciarSesion } from '@/servicios/autenticacion';
+import { useColores } from '@/tema/useColores';
 
 export default function Login() {
+  const colores = useColores();
   const sesion = useSesion();
   const [email, setEmail] = useState('');
   const [contrasena, setContrasena] = useState('');
@@ -41,8 +45,14 @@ export default function Login() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-center px-6"
       >
-        <View className="mb-8 gap-2 rounded-2xl border border-borde bg-superficie px-5 py-7">
-          <Text className="text-center text-2xl font-bold text-texto">Ingresá a tu cuenta</Text>
+        <View className="mb-8 items-center gap-2">
+          {/* El logo ya está en el encabezado: acá, un ícono para no repetirlo. */}
+          <View className="h-20 w-20 items-center justify-center rounded-full bg-primario-claro">
+            <Ionicons name="person-circle-outline" size={48} color={colores.primario} />
+          </View>
+          <Text accessibilityRole="header" className="mt-2 text-center text-3xl font-bold text-texto">
+            Ingresá a tu cuenta
+          </Text>
           <Text className="text-center text-base text-texto-suave">Guardá tus favoritos y tu recorrido</Text>
         </View>
 
@@ -66,10 +76,15 @@ export default function Login() {
             testID="input-contrasena"
           />
 
-          {error && <Text className="text-sm text-error">{error}</Text>}
+          {error ? <Aviso tono="error">{error}</Aviso> : null}
 
           <View className="mt-2">
-            <Boton titulo={cargando ? 'Ingresando...' : 'Ingresar'} onPress={handleSubmit} deshabilitado={cargando} />
+            <Boton
+              titulo={cargando ? 'Ingresando...' : 'Ingresar'}
+              icono="log-in-outline"
+              onPress={handleSubmit}
+              cargando={cargando}
+            />
           </View>
 
           <Boton titulo="Seguir sin cuenta" variante="secundario" onPress={volver} deshabilitado={cargando} />

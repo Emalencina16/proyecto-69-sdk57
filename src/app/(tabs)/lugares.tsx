@@ -2,23 +2,28 @@ import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 
+import { Aviso } from '@/components/Aviso';
+import { Cargando } from '@/components/Cargando';
+import { EstadoVacio } from '@/components/EstadoVacio';
 import { FiltroCategorias } from '@/components/FiltroCategorias';
 import { Tarjeta } from '@/components/Tarjeta';
+import { Titulo } from '@/components/Titulo';
 import { obtenerCategorias } from '@/servicios/categorias';
 import { obtenerLugares } from '@/servicios/lugares';
 import { distanciaEntre } from '@/utilidades/distancia';
 import type { Categoria } from '@/tipos/categoria';
 import type { Coordenadas } from '@/tipos/coordenadas';
 import type { Lugar } from '@/tipos/lugar';
-import colores from '@/tema/colores';
+import { useColores } from '@/tema/useColores';
 
 function normalizar(texto: string): string {
   return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
 }
 
 export default function Lugares() {
+  const colores = useColores();
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
@@ -100,7 +105,7 @@ export default function Lugares() {
     <View className="flex-1 bg-fondo">
       <FiltroCategorias categorias={categorias} seleccionada={categoriaId} onSeleccionar={setCategoriaId} />
 
-      <View className="mx-5 mt-4 flex-row items-center gap-2 rounded-xl border border-borde bg-superficie px-4">
+      <View className="mx-5 mt-4 flex-row items-center gap-2 rounded-control border border-borde bg-superficie px-4">
         <Ionicons name="search" size={20} color={colores['texto-suave']} />
         <TextInput
           value={busqueda}
@@ -114,17 +119,15 @@ export default function Lugares() {
       </View>
 
       {errorUbicacion ? (
-        <Text accessibilityRole="alert" className="px-5 pt-3 text-sm text-error">
+        <Aviso tono="advertencia" icono="navigate-outline" className="mx-5 mt-3">
           {errorUbicacion}
-        </Text>
+        </Aviso>
       ) : null}
 
       {cargando ? (
-        <ActivityIndicator size="large" className="mt-8" />
+        <Cargando />
       ) : error ? (
-        <Text accessibilityRole="alert" className="px-5 pt-6 text-base text-error">
-          {error}
-        </Text>
+        <EstadoVacio tono="error" icono="alert-circle-outline" titulo="No pudimos cargar los lugares" mensaje={error} />
       ) : (
         <FlatList
           data={lugaresVisibles}
@@ -132,12 +135,20 @@ export default function Lugares() {
           className="flex-1"
           contentContainerClassName="gap-3 px-5 py-5"
           ListHeaderComponent={
-            <Text className="text-sm text-texto-suave">
-              {lugaresVisibles.length} {lugaresVisibles.length === 1 ? 'lugar' : 'lugares'}
-            </Text>
+            <Titulo
+              subtitulo={`${lugaresVisibles.length} ${lugaresVisibles.length === 1 ? 'lugar' : 'lugares'}${
+                ubicacionUsuario ? ' · los más cercanos primero' : ''
+              }`}
+            >
+              Lugares
+            </Titulo>
           }
           ListEmptyComponent={
-            <Text className="text-base text-texto-suave">No encontramos lugares con esos filtros.</Text>
+            <EstadoVacio
+              icono="search-outline"
+              titulo="No encontramos lugares"
+              mensaje="Probá con otra búsqueda o sacá algún filtro."
+            />
           }
           renderItem={({ item }) => (
             <Pressable
@@ -155,7 +166,12 @@ export default function Lugares() {
                   <Ionicons name="location-outline" size={16} color={colores['texto-suave']} />
                   <Text className="flex-1 text-sm text-texto-suave">{item.direccion}</Text>
                 </View>
-                {item.accesible ? <Text className="text-sm font-medium text-primario">Lugar accesible</Text> : null}
+                {item.accesible ? (
+                  <View className="flex-row items-center gap-1.5 self-start rounded-full bg-exito-claro px-2.5 py-1">
+                    <Ionicons name="accessibility-outline" size={16} color={colores.exito} />
+                    <Text className="text-sm font-medium text-exito">Accesible</Text>
+                  </View>
+                ) : null}
               </Tarjeta>
             </Pressable>
           )}

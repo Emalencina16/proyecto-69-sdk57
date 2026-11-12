@@ -2,7 +2,7 @@ import { Ionicons } from '@react-native-vector-icons/ionicons';
 import type { ComponentProps } from 'react';
 import { Pressable, ScrollView, Text } from 'react-native';
 
-import colores from '@/tema/colores';
+import { useColores } from '@/tema/useColores';
 import type { Categoria } from '@/tipos/categoria';
 
 type NombreIcono = ComponentProps<typeof Ionicons>['name'];
@@ -15,6 +15,7 @@ type Props = {
 
 // Fila de chips horizontal. Botones altos (PDF: se usa con una mano y al sol).
 export function FiltroCategorias({ categorias, seleccionada, onSeleccionar }: Props) {
+  const colores = useColores();
   return (
     <ScrollView
       horizontal
@@ -55,6 +56,7 @@ type PropsChip = {
 };
 
 function Chip({ nombre, icono, color, activo, onPress }: PropsChip) {
+  const colores = useColores();
   return (
     <Pressable
       onPress={onPress}
@@ -67,8 +69,8 @@ function Chip({ nombre, icono, color, activo, onPress }: PropsChip) {
         backgroundColor: activo ? colores.primario : colores.superficie,
       }}
     >
-      <Ionicons name={icono} size={20} color={activo ? '#ffffff' : color} />
-      <Text className={`text-sm font-bold ${activo ? 'text-white' : 'text-texto'}`}>{nombre}</Text>
+      <Ionicons name={icono} size={20} color={activo ? colores['sobre-primario'] : color} />
+      <Text className={`text-sm font-bold ${activo ? 'text-sobre-primario' : 'text-texto'}`}>{nombre}</Text>
     </Pressable>
   );
 }

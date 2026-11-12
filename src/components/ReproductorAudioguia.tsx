@@ -1,3 +1,5 @@
+import { Aviso } from '@/components/Aviso';
+import { Boton } from '@/components/Boton';
 import { Tarjeta } from '@/components/Tarjeta';
 import { descargarAudio, obtenerAudioLocal } from '@/servicios/audioLocal';
 import { ErrorServicio } from '@/servicios/errores';
@@ -5,7 +7,7 @@ import type { Lugar } from '@/tipos/lugar';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useNetworkState } from 'expo-network';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 const SALTO_SEGUNDOS = 15;
 
@@ -84,19 +86,14 @@ function Reproductor({ lugarId, nombre, url, duracionInicial }: PropsReproductor
   return (
     <Tarjeta>
       {!abierto ? (
-        <Pressable
+        <Boton
+          titulo={`Escuchar audioguía ${formatearTiempo(duracionInicial)}`}
           onPress={() => setAbierto(true)}
-          disabled={sinSenal}
-          accessibilityRole="button"
+          tamano="grande"
+          icono="headset-outline"
+          deshabilitado={sinSenal}
           accessibilityLabel={`Escuchar audioguía, dura ${formatearTiempo(duracionInicial)}`}
-          className={`min-h-14 items-center justify-center rounded-lg bg-primario px-5 ${
-            sinSenal ? 'opacity-50' : ''
-          }`}
-        >
-          <Text className="text-center text-base font-semibold text-white">
-            Escuchar audioguía {formatearTiempo(duracionInicial)}
-          </Text>
-        </Pressable>
+        />
       ) : (
         <Controles
           key={fuenteActiva}
@@ -112,30 +109,29 @@ function Reproductor({ lugarId, nombre, url, duracionInicial }: PropsReproductor
       )}
 
       {sinSenal ? (
-        <Text className="text-base font-semibold text-texto">
+        <Aviso tono="advertencia" icono="cloud-offline-outline">
           Sin señal. Esta audioguía no está descargada.
-        </Text>
+        </Aviso>
       ) : null}
 
       {uriLocal ? (
-        <Text className="text-base text-texto">Descargada: se escucha sin conexión.</Text>
+        <Aviso tono="exito" icono="checkmark-circle-outline">
+          Descargada: se escucha sin conexión.
+        </Aviso>
       ) : (
-        <Pressable
+        <Boton
+          titulo={descargando ? 'Descargando...' : 'Descargar para escuchar sin conexión'}
           onPress={manejarDescarga}
-          disabled={descargando || sinSenal}
-          accessibilityRole="button"
+          variante="secundario"
+          tamano="grande"
+          icono="download-outline"
+          cargando={descargando}
+          deshabilitado={sinSenal}
           accessibilityLabel="Descargar audioguía para escuchar sin conexión"
-          className={`min-h-14 items-center justify-center rounded-lg border border-borde px-3 ${
-            descargando || sinSenal ? 'opacity-50' : ''
-          }`}
-        >
-          <Text className="text-center text-base font-semibold text-texto">
-            {descargando ? 'Descargando...' : 'Descargar para escuchar sin conexión'}
-          </Text>
-        </Pressable>
+        />
       )}
 
-      {errorDescarga ? <Text className="text-base text-error">{errorDescarga}</Text> : null}
+      {errorDescarga ? <Aviso tono="error">{errorDescarga}</Aviso> : null}
     </Tarjeta>
   );
 }
@@ -228,34 +224,32 @@ function Controles({
       </View>
 
       <View className="flex-row flex-wrap gap-2">
-        <Pressable
+        <Boton
+          titulo={`-${SALTO_SEGUNDOS}s`}
           onPress={() => moverSegundos(-SALTO_SEGUNDOS)}
-          accessibilityRole="button"
+          variante="secundario"
+          tamano="grande"
           accessibilityLabel={`Retroceder ${SALTO_SEGUNDOS} segundos`}
-          className="min-h-14 min-w-20 items-center justify-center rounded-lg border border-borde px-4"
-        >
-          <Text className="text-base text-texto">-{SALTO_SEGUNDOS}s</Text>
-        </Pressable>
+          className="min-w-20"
+        />
 
-        <Pressable
+        <Boton
+          titulo={estado.playing ? 'Pausar' : 'Reproducir'}
           onPress={alternarReproduccion}
-          accessibilityRole="button"
+          tamano="grande"
+          icono={estado.playing ? 'pause' : 'play'}
           accessibilityLabel={estado.playing ? 'Pausar audioguía' : 'Reproducir audioguía'}
-          className="min-h-14 min-w-32 flex-1 items-center justify-center rounded-lg bg-primario px-5"
-        >
-          <Text className="text-base font-semibold text-white">
-            {estado.playing ? 'Pausar' : 'Reproducir'}
-          </Text>
-        </Pressable>
+          className="min-w-32 flex-1"
+        />
 
-        <Pressable
+        <Boton
+          titulo={`+${SALTO_SEGUNDOS}s`}
           onPress={() => moverSegundos(SALTO_SEGUNDOS)}
-          accessibilityRole="button"
+          variante="secundario"
+          tamano="grande"
           accessibilityLabel={`Adelantar ${SALTO_SEGUNDOS} segundos`}
-          className="min-h-14 min-w-20 items-center justify-center rounded-lg border border-borde px-4"
-        >
-          <Text className="text-base text-texto">+{SALTO_SEGUNDOS}s</Text>
-        </Pressable>
+          className="min-w-20"
+        />
       </View>
     </>
   );

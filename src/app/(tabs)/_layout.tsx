@@ -2,13 +2,14 @@ import { Tabs } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import type { ColorValue } from 'react-native';
 
-import colores from '@/tema/colores';
+import { useColores } from '@/tema/useColores';
 
 function icono(name: SymbolViewProps['name']) {
   return ({ color }: { color: ColorValue }) => <SymbolView name={name} tintColor={color} size={24} />;
 }
 
 export default function TabsLayout() {
+  const colores = useColores();
   return (
     <Tabs
       screenOptions={{

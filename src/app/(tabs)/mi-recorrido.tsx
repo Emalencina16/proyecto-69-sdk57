@@ -10,6 +10,7 @@ import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo } from "@/components/Campo";
 import { Cargando } from "@/components/Cargando";
+import { EscanerQr } from "@/components/EscanerQr";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { EtiquetaSeccion } from "@/components/EtiquetaSeccion";
 import { Pantalla } from "@/components/Pantalla";
@@ -17,11 +18,17 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { Titulo } from "@/components/Titulo";
 import { useSesion } from "@/estado/sesion";
 import { obtenerCatalogo } from "@/servicios/catalogo";
+import { ErrorServicio } from "@/servicios/errores";
+import { obtenerLugarPorQr } from "@/servicios/lugares";
 import { obtenerRecorrido, registrarVisita } from "@/servicios/visitas";
 import type { Lugar } from "@/tipos/lugar";
-import type { Visita } from "@/tipos/visita";
+import type { OrigenVisita, Visita } from "@/tipos/visita";
+import { leerCodigoQr } from "@/utilidades/qr";
 import { useColores } from "@/tema/useColores";
 import radios from "@/tema/radios";
+
+// Mismo texto que el error QR_NO_RECONOCIDO de la API.
+const QR_AJENO = "Ese código no es de Mi Ciudad. Probá con el cartel de otro lugar.";
 
 // quality 0.5 deja la foto muy por debajo del límite de 5 MB de la API.
 const OPCIONES_FOTO: ImagePicker.ImagePickerOptions = {
@@ -40,6 +47,9 @@ export default function MiRecorrido() {
 
   const [registrando, setRegistrando] = useState(false);
   const [lugarElegido, setLugarElegido] = useState<string | null>(null);
+  // "qr" si el lugar salió del cartel; si después lo cambia a mano, "manual".
+  const [origen, setOrigen] = useState<OrigenVisita>("manual");
+  const [escaneando, setEscaneando] = useState(false);
   const [nota, setNota] = useState("");
   const [foto, setFoto] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -91,9 +101,48 @@ export default function MiRecorrido() {
   function cerrarFormulario() {
     setRegistrando(false);
     setLugarElegido(null);
+    setOrigen("manual");
     setNota("");
     setFoto(null);
     setErrorRegistro(null);
+  }
+
+  function elegirLugarAMano(id: string | null) {
+    setLugarElegido(id);
+    setOrigen("manual");
+  }
+
+  function abrirEscaner() {
+    setAviso(null);
+    setEscaneando(true);
+  }
+
+  // Lo que leyó la cámara. Devuelve null si encontró el lugar o el mensaje
+  // para mostrar si no. Primero contra el catálogo del teléfono (anda sin
+  // señal y no cuelga); si no hay catálogo, le pregunta a la API.
+  async function alLeerQr(texto: string): Promise<string | null> {
+    const id = leerCodigoQr(texto);
+    if (!id) return QR_AJENO;
+
+    let lugar: Lugar | undefined;
+    if (lugares.length > 0) {
+      lugar = lugares.find((l) => l.id === id && l.codigoQr === texto.trim());
+      if (!lugar) return QR_AJENO;
+    } else {
+      try {
+        lugar = await obtenerLugarPorQr(texto.trim());
+      } catch (e) {
+        return e instanceof ErrorServicio ? e.message : QR_AJENO;
+      }
+    }
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setLugarElegido(lugar.id);
+    setOrigen("qr");
+    setErrorRegistro(null);
+    setRegistrando(true);
+    setEscaneando(false);
+    return null;
   }
 
   // Cámara (lo que pide el PRD: "sacar una foto en el lugar") o galería.
@@ -125,7 +174,7 @@ export default function MiRecorrido() {
     try {
       const registrada = await registrarVisita({
         lugarId: lugarElegido,
-        origen: "manual",
+        origen,
         nota: nota.trim() || null,
         foto,
       });
@@ -209,7 +258,19 @@ export default function MiRecorrido() {
 
         {/* Registrar va arriba: con muchas visitas no hay que bajar hasta el final. */}
         {!registrando ? (
-          <Boton titulo="Registrar visita" icono="add-circle-outline" onPress={abrirFormulario} />
+          <View className="gap-3">
+            <Boton
+              titulo="Escanear QR del cartel"
+              icono="qr-code-outline"
+              onPress={abrirEscaner}
+            />
+            <Boton
+              titulo="Cargar a mano"
+              variante="secundario"
+              icono="add-circle-outline"
+              onPress={abrirFormulario}
+            />
+          </View>
         ) : (
           <Tarjeta className="gap-4">
             <EtiquetaSeccion>Nueva visita</EtiquetaSeccion>
@@ -217,8 +278,13 @@ export default function MiRecorrido() {
             <SelectorLugar
               lugares={lugares}
               elegido={lugarElegido}
-              onElegir={setLugarElegido}
+              onElegir={elegirLugarAMano}
             />
+            {origen === "qr" && lugarElegido ? (
+              <Aviso tono="exito" icono="qr-code-outline">
+                Lugar leído del código QR.
+              </Aviso>
+            ) : null}
 
             <Campo
               etiqueta="Nota (opcional)"
@@ -327,6 +393,12 @@ export default function MiRecorrido() {
           </>
         )}
       </ScrollView>
+
+      <EscanerQr
+        visible={escaneando}
+        onCerrar={() => setEscaneando(false)}
+        onLeido={alLeerQr}
+      />
     </Pantalla>
   );
 }

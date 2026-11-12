@@ -51,6 +51,13 @@
         }
       ],
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Mi Ciudad usa la cámara para leer el código QR de los carteles y registrar tu visita.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "Mi Ciudad usa tu ubicación para ordenar los lugares por cercanía."

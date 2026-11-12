@@ -25,3 +25,9 @@ export async function obtenerLugares(filtros: FiltrosLugares = {}): Promise<Luga
 export async function obtenerLugar(id: string): Promise<Lugar> {
   return pedirUno<Lugar>(`/lugares/${encodeURIComponent(id)}`);
 }
+
+// El lugar de un QR de cartel (el texto tal cual lo leyó la cámara). Si no es
+// un QR nuestro, la API responde QR_NO_RECONOCIDO con un mensaje para mostrar.
+export async function obtenerLugarPorQr(codigo: string): Promise<Lugar> {
+  return pedirUno<Lugar>(`/lugares/qr/${encodeURIComponent(codigo)}`);
+}

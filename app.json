@@ -60,7 +60,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Mi Ciudad usa tu ubicación para ordenar los lugares por cercanía."
+          "locationWhenInUsePermission": "Mi Ciudad usa tu ubicación para ordenar los lugares por cercanía y registrar los lugares que visitás."
         }
       ],
       [

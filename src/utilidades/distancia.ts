@@ -27,3 +27,11 @@ export function distanciaEntre(a: Coordenadas, b: Coordenadas): number | null {
 
   return 6_371_000 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
+
+// "350 m", "1,8 km", "152 km". Decimal solo cerca: "1,8 km" sirve, "152,3 km" no.
+export function formatearDistancia(metros: number): string {
+  if (metros < 1000) return `${Math.round(metros)} m`;
+  return `${new Intl.NumberFormat('es-AR', {
+    maximumFractionDigits: metros < 10000 ? 1 : 0,
+  }).format(metros / 1000)} km`;
+}

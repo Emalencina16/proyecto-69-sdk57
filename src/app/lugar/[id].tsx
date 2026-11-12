@@ -15,7 +15,7 @@ import { EtiquetaSeccion } from '@/components/EtiquetaSeccion';
 import { FilaAccion } from '@/components/FilaAccion';
 import { Tarjeta } from '@/components/Tarjeta';
 import { obtenerCategorias } from '@/servicios/categorias';
-import { distanciaEntre } from '@/utilidades/distancia';
+import { distanciaEntre, formatearDistancia } from '@/utilidades/distancia';
 import { obtenerLugar } from '@/servicios/lugares';
 import type { Categoria } from '@/tipos/categoria';
 import type { Coordenadas } from '@/tipos/coordenadas';
@@ -109,15 +109,7 @@ export default function DetalleLugar() {
   const error = resultado?.id === id ? resultado.error : null;
   const categoria = categorias.find((actual) => actual.id === lugar?.categoriaId);
   const distanciaLugar = lugar && ubicacionUsuario ? distanciaEntre(ubicacionUsuario, lugar.coordenadas) : null;
-  const textoDistancia =
-    distanciaLugar === null
-      ? null
-      : distanciaLugar < 1000
-        ? `${Math.round(distanciaLugar)} m`
-        : `${new Intl.NumberFormat('es-AR', {
-            // Decimal solo cerca: "1,8 km" sirve, "152,3 km" no.
-            maximumFractionDigits: distanciaLugar < 10000 ? 1 : 0,
-          }).format(distanciaLugar / 1000)} km`;
+  const textoDistancia = distanciaLugar === null ? null : formatearDistancia(distanciaLugar);
 
   return (
     <View className="flex-1 bg-fondo">

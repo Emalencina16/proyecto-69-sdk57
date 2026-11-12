@@ -18,11 +18,18 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { Titulo } from "@/components/Titulo";
 import { useSesion } from "@/estado/sesion";
 import { obtenerCatalogo } from "@/servicios/catalogo";
+import {
+  buscarLugaresCercanos,
+  ErrorCercania,
+  RADIO_VISITA_METROS,
+  type LugarCercano,
+} from "@/servicios/cercania";
 import { ErrorServicio } from "@/servicios/errores";
 import { obtenerLugarPorQr } from "@/servicios/lugares";
 import { obtenerRecorrido, registrarVisita } from "@/servicios/visitas";
 import type { Lugar } from "@/tipos/lugar";
 import type { OrigenVisita, Visita } from "@/tipos/visita";
+import { formatearDistancia } from "@/utilidades/distancia";
 import { leerCodigoQr } from "@/utilidades/qr";
 import { useColores } from "@/tema/useColores";
 import radios from "@/tema/radios";
@@ -50,6 +57,9 @@ export default function MiRecorrido() {
   // "qr" si el lugar salió del cartel; si después lo cambia a mano, "manual".
   const [origen, setOrigen] = useState<OrigenVisita>("manual");
   const [escaneando, setEscaneando] = useState(false);
+  const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
+  // Con origen "gps": los lugares dentro del radio, del más cercano al más lejano.
+  const [cercanos, setCercanos] = useState<LugarCercano[]>([]);
   const [nota, setNota] = useState("");
   const [foto, setFoto] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -102,6 +112,7 @@ export default function MiRecorrido() {
     setRegistrando(false);
     setLugarElegido(null);
     setOrigen("manual");
+    setCercanos([]);
     setNota("");
     setFoto(null);
     setErrorRegistro(null);
@@ -112,8 +123,46 @@ export default function MiRecorrido() {
     setOrigen("manual");
   }
 
+  // "Estando físicamente cerca" (PRD): si hay lugares a menos del radio, abre
+  // el formulario con el más cercano elegido; si hay varios, deja elegir
+  // entre esos sin perder el origen "gps".
+  async function registrarPorCercania() {
+    setAviso(null);
+    setErrorRegistro(null);
+    // Con el formulario abierto el aviso va adentro, al lado de los botones.
+    const avisar = (texto: string) =>
+      registrando ? setErrorRegistro(texto) : setAviso({ texto, tono: "advertencia" });
+    if (lugares.length === 0) {
+      avisar("No pudimos cargar los lugares. Probá de nuevo con señal.");
+      return;
+    }
+    setBuscandoUbicacion(true);
+    try {
+      const { cercanos: encontrados, masCercano } = await buscarLugaresCercanos(lugares);
+      if (encontrados.length === 0) {
+        avisar(
+          masCercano
+            ? `No hay lugares a menos de ${RADIO_VISITA_METROS} m. El más cercano es ${masCercano.lugar.nombre}, a ${formatearDistancia(masCercano.distancia)}.`
+            : `No hay lugares a menos de ${RADIO_VISITA_METROS} m.`,
+        );
+        return;
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setCercanos(encontrados);
+      setLugarElegido(encontrados[0].lugar.id);
+      setOrigen("gps");
+      setErrorRegistro(null);
+      setRegistrando(true);
+    } catch (e) {
+      avisar(e instanceof ErrorCercania ? e.message : "No pudimos encontrar tu ubicación.");
+    } finally {
+      setBuscandoUbicacion(false);
+    }
+  }
+
   function abrirEscaner() {
     setAviso(null);
+    setErrorRegistro(null);
     setEscaneando(true);
   }
 
@@ -265,6 +314,14 @@ export default function MiRecorrido() {
               onPress={abrirEscaner}
             />
             <Boton
+              titulo={buscandoUbicacion ? "Buscando tu ubicación..." : "Estoy en el lugar"}
+              variante="secundario"
+              icono="navigate-outline"
+              accessibilityLabel="Registrar el lugar donde estoy, por ubicación"
+              cargando={buscandoUbicacion}
+              onPress={registrarPorCercania}
+            />
+            <Boton
               titulo="Cargar a mano"
               variante="secundario"
               icono="add-circle-outline"
@@ -284,6 +341,41 @@ export default function MiRecorrido() {
               <Aviso tono="exito" icono="qr-code-outline">
                 Lugar leído del código QR.
               </Aviso>
+            ) : null}
+            {origen === "manual" ? (
+              <View className="gap-1.5">
+                <Text className="text-sm font-medium text-texto-suave">
+                  ¿Estás en el lugar? Que lo encuentre la app:
+                </Text>
+                <View className="flex-row gap-3">
+                  <Boton
+                    titulo="Escanear QR"
+                    variante="secundario"
+                    tamano="vertical"
+                    icono="qr-code-outline"
+                    accessibilityLabel="Escanear el código QR del cartel"
+                    onPress={abrirEscaner}
+                    className="flex-1"
+                  />
+                  <Boton
+                    titulo={buscandoUbicacion ? "Buscando..." : "Por ubicación"}
+                    variante="secundario"
+                    tamano="vertical"
+                    icono="navigate-outline"
+                    accessibilityLabel="Buscar el lugar donde estoy, por ubicación"
+                    cargando={buscandoUbicacion}
+                    onPress={registrarPorCercania}
+                    className="flex-1"
+                  />
+                </View>
+              </View>
+            ) : null}
+            {origen === "gps" && lugarElegido ? (
+              <LugaresCercanos
+                cercanos={cercanos}
+                elegido={lugarElegido}
+                onElegir={setLugarElegido}
+              />
             ) : null}
 
             <Campo
@@ -400,6 +492,54 @@ export default function MiRecorrido() {
         onLeido={alLeerQr}
       />
     </Pantalla>
+  );
+}
+
+// Con origen "gps": a cuánto está del elegido y, si hay otros dentro del
+// radio, los ofrece para cambiar sin pasar a "manual".
+function LugaresCercanos({
+  cercanos,
+  elegido,
+  onElegir,
+}: {
+  cercanos: LugarCercano[];
+  elegido: string;
+  onElegir: (id: string) => void;
+}) {
+  const colores = useColores();
+  const actual = cercanos.find((c) => c.lugar.id === elegido);
+  const otros = cercanos.filter((c) => c.lugar.id !== elegido);
+
+  return (
+    <View className="gap-2">
+      {actual ? (
+        <Aviso tono="exito" icono="navigate-outline">
+          Estás a {formatearDistancia(actual.distancia)} de {actual.lugar.nombre}.
+        </Aviso>
+      ) : null}
+      {otros.length > 0 ? (
+        <>
+          <Text className="text-sm font-medium text-texto-suave">¿Estás en otro? También cerca:</Text>
+          <View className="overflow-hidden rounded-control border border-borde">
+            {otros.map(({ lugar, distancia }, indice) => (
+              <Pressable
+                key={lugar.id}
+                onPress={() => onElegir(lugar.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Elegir ${lugar.nombre}, a ${formatearDistancia(distancia)}`}
+                className={`min-h-12 flex-row items-center gap-3 bg-superficie px-4 py-3 active:bg-primario-claro ${
+                  indice > 0 ? "border-t border-borde" : ""
+                }`}
+              >
+                <Ionicons name="location-outline" size={20} color={colores["texto-suave"]} />
+                <Text className="flex-1 text-base text-texto">{lugar.nombre}</Text>
+                <Text className="text-sm text-texto-suave">{formatearDistancia(distancia)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : null}
+    </View>
   );
 }
 

@@ -37,6 +37,16 @@ export async function obtenerAudioLocal(
   }
 }
 
+// Borra la copia del teléfono: la audioguía vuelve a escucharse por streaming
+// y se puede descargar de nuevo.
+export async function borrarAudioLocal(
+  lugarId: string,
+  url: string,
+): Promise<void> {
+  const archivo = archivoDe(lugarId, url);
+  if (archivo.exists) archivo.delete();
+}
+
 export function descargarAudio(lugarId: string, url: string): Promise<string> {
   const clave = `${lugarId}|${url}`;
   const previa = enCurso.get(clave);

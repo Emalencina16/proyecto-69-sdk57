@@ -1,7 +1,7 @@
 import { Aviso } from '@/components/Aviso';
 import { Boton } from '@/components/Boton';
 import { Tarjeta } from '@/components/Tarjeta';
-import { descargarAudio, obtenerAudioLocal } from '@/servicios/audioLocal';
+import { borrarAudioLocal, descargarAudio, obtenerAudioLocal } from '@/servicios/audioLocal';
 import { ErrorServicio } from '@/servicios/errores';
 import type { Lugar } from '@/tipos/lugar';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
@@ -45,7 +45,11 @@ function Reproductor({ lugarId, nombre, url, duracionInicial }: PropsReproductor
   const [uriLocal, setUriLocal] = useState<string | null>(null);
   const [abierto, setAbierto] = useState(false);
   const [descargando, setDescargando] = useState(false);
+  const [quitando, setQuitando] = useState(false);
   const [errorDescarga, setErrorDescarga] = useState<string | null>(null);
+  // Solo la primera vez que se abre arranca solo: al cambiar de fuente (descargar o quitar la
+  // descarga con el audio en pausa) los controles se rearman y no tienen que ponerse a sonar.
+  const [yaSono, setYaSono] = useState(false);
 
   
   useEffect(() => {
@@ -83,6 +87,20 @@ function Reproductor({ lugarId, nombre, url, duracionInicial }: PropsReproductor
     }
   }
 
+  async function manejarQuitarDescarga() {
+    setQuitando(true);
+    setErrorDescarga(null);
+    try {
+      await borrarAudioLocal(lugarId, url);
+      setUriLocal(null);
+    } catch (err) {
+      console.error(err);
+      setErrorDescarga('No se pudo quitar la descarga.');
+    } finally {
+      setQuitando(false);
+    }
+  }
+
   return (
     <Tarjeta>
       {!abierto ? (
@@ -105,6 +123,8 @@ function Reproductor({ lugarId, nombre, url, duracionInicial }: PropsReproductor
             posicion.current = s;
           }}
           onReproduciendo={setReproduciendo}
+          autoReproducir={!yaSono}
+          onArrancar={() => setYaSono(true)}
         />
       )}
 
@@ -115,9 +135,22 @@ function Reproductor({ lugarId, nombre, url, duracionInicial }: PropsReproductor
       ) : null}
 
       {uriLocal ? (
-        <Aviso tono="exito" icono="checkmark-circle-outline">
-          Descargada: se escucha sin conexión.
-        </Aviso>
+        <>
+          <Aviso tono="exito" icono="checkmark-circle-outline">
+            Descargada: se escucha sin conexión.
+          </Aviso>
+          {/* Con el audio sonando no se borra el archivo que se está leyendo: primero pausar. */}
+          <Boton
+            titulo={quitando ? 'Quitando...' : 'Quitar descarga'}
+            onPress={manejarQuitarDescarga}
+            variante="secundario"
+            tamano="grande"
+            icono="trash-outline"
+            cargando={quitando}
+            deshabilitado={reproduciendo}
+            accessibilityLabel="Quitar la audioguía descargada del teléfono"
+          />
+        </>
       ) : (
         <Boton
           titulo={descargando ? 'Descargando...' : 'Descargar para escuchar sin conexión'}
@@ -143,6 +176,8 @@ type PropsControles = {
   leerPosicion: () => number;
   guardarPosicion: (segundos: number) => void;
   onReproduciendo: (valor: boolean) => void;
+  autoReproducir: boolean;
+  onArrancar: () => void;
 };
 
 function Controles({
@@ -152,6 +187,8 @@ function Controles({
   leerPosicion,
   guardarPosicion,
   onReproduciendo,
+  autoReproducir,
+  onArrancar,
 }: PropsControles) {
   const player = useAudioPlayer({ uri: fuente });
   const estado = useAudioPlayerStatus(player);
@@ -166,13 +203,15 @@ function Controles({
   arrancado.current = true;
   const previa = leerPosicion();
   if (previa > 0) player.seekTo(previa);
+  if (!autoReproducir) return;
   try {
     player.setActiveForLockScreen(true, { title: `Audioguía: ${nombre}`, artist: 'Colón' });
   } catch (err) {
     console.warn('No se pudo activar la pantalla de bloqueo', err);
   }
   player.play();
-}, [estado.isLoaded, player, nombre, leerPosicion]);
+  onArrancar();
+}, [estado.isLoaded, player, nombre, leerPosicion, autoReproducir, onArrancar]);
 
   useEffect(() => {
     if (arrancado.current) guardarPosicion(estado.currentTime);

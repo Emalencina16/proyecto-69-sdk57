@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "proyecto-69-sdk54",
+    "name": "Mi Ciudad",
     "slug": "proyecto-69-sdk54",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,6 +11,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -32,11 +33,62 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-sqlite",
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Usamos Face ID para que vuelvas a entrar a tu cuenta sin escribir la contraseña."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Mi Ciudad necesita acceder a tus fotos para agregarlas a los lugares.",
+          "cameraPermission": "Mi Ciudad necesita acceder a la cámara para tomar fotos.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Mi Ciudad usa la cámara para leer el código QR de los carteles y registrar tu visita.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Mi Ciudad usa tu ubicación para ordenar los lugares por cercanía y registrar los lugares que visitás."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ],
+      "expo-video",
+      [
+        "expo-notifications",
+        {
+          "color": "#208AEF",
+          "defaultChannel": "avisos"
+        }
+      ],
+      "@react-native-vector-icons/ionicons"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2cd8a6fc-036e-4eb7-89c6-31babe933d63"
+      }
+    },
+    "owner": "walterfrias"
   }
 }

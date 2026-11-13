@@ -78,7 +78,9 @@ export async function registrarTelefono(): Promise<void> {
       body: JSON.stringify({ tokenExpo, plataforma: Platform.OS === 'ios' ? 'ios' : 'android' }),
     });
     tokenRegistrado = tokenExpo;
-    console.log('[notificaciones] teléfono registrado:', tokenExpo);
+    // El token de push solo se loguea en desarrollo: en release quedaría
+    // visible para cualquiera con adb logcat.
+    if (__DEV__) console.log('[notificaciones] teléfono registrado:', tokenExpo);
   } catch (error) {
     console.warn('[notificaciones] no se pudo registrar el teléfono', error);
   }

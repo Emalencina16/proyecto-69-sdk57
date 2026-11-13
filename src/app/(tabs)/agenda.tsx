@@ -23,6 +23,7 @@ import { useColores } from '@/tema/useColores';
 import type { Evento } from '@/tipos/evento';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { router, useFocusEffect } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 
@@ -102,27 +103,44 @@ export default function Agenda() {
     setCantidadVisible(MAX_EVENTOS_VISIBLES);
   }, [fechaSeleccionada]);
 
+  // Si el admin suspende o cancela un evento, llega una push "evento-estado": con la app
+  // abierta, se vuelve a pedir la lista para que el chip aparezca sin salir de la pantalla.
+  const [recargasEventos, setRecargasEventos] = useState(0);
+
   useEffect(() => {
-    let vigente = true;
-
-    obtenerEventos()
-      .then((eventosObtenidos) => {
-        if (!vigente) return;
-        setEventos(eventosObtenidos);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error(err);
-        if (vigente) setError('No se pudieron cargar los eventos.');
-      })
-      .finally(() => {
-        if (vigente) setCargando(false);
-      });
-
-    return () => {
-      vigente = false;
-    };
+    const suscripcion = Notifications.addNotificationReceivedListener((notificacion) => {
+      if (notificacion.request.content.data?.tipo === 'evento-estado') {
+        setRecargasEventos((cantidad) => cantidad + 1);
+      }
+    });
+    return () => suscripcion.remove();
   }, []);
+
+  // Al enfocar la pestaña (y tras cada push de estado) se piden los eventos de nuevo: las
+  // pestañas quedan montadas, así que un useEffect de una sola vez dejaba estados viejos.
+  useFocusEffect(
+    useCallback(() => {
+      let vigente = true;
+
+      obtenerEventos()
+        .then((eventosObtenidos) => {
+          if (!vigente) return;
+          setEventos(eventosObtenidos);
+          setError(null);
+        })
+        .catch((err) => {
+          console.error(err);
+          if (vigente) setError('No se pudieron cargar los eventos.');
+        })
+        .finally(() => {
+          if (vigente) setCargando(false);
+        });
+
+      return () => {
+        vigente = false;
+      };
+    }, [recargasEventos]),
+  );
 
   useFocusEffect(
     useCallback(() => {

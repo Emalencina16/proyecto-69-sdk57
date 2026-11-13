@@ -13,7 +13,7 @@ export function Encabezado({ onBack }: Props) {
   const colores = useColores();
   return (
     <SafeAreaView edges={['top']} className="bg-primario-oscuro">
-      <View className="h-14 flex-row items-center justify-center border-b border-borde bg-superficie px-4">
+      <View className="h-14 flex-row items-center justify-center bg-primario-oscuro px-4">
         {/* Marca centrada: nombre de la app + logo de Colón como una sola pieza.
             Volver va aparte a la izquierda para no correr el centro. */}
         <View
@@ -22,8 +22,8 @@ export function Encabezado({ onBack }: Props) {
           accessibilityLabel="Mi Ciudad, Colón, Entre Ríos"
           className="flex-row items-center gap-3"
         >
-          <Text className="text-2xl font-bold text-primario">Mi Ciudad</Text>
-          <View className="h-7 w-px bg-borde" />
+          <Text className="text-2xl font-bold text-sobre-primario">Mi Ciudad</Text>
+          <View className="h-7 w-px bg-sobre-primario/40" />
           <Image
             source={require('../../assets/images/logo.png')}
             contentFit="contain"
@@ -38,7 +38,7 @@ export function Encabezado({ onBack }: Props) {
             onPress={onBack}
             className="absolute bottom-0 left-2 top-0 w-12 items-center justify-center"
           >
-            <Ionicons name="arrow-back" size={24} color={colores.texto} />
+            <Ionicons name="arrow-back" size={24} color={colores['sobre-primario']} />
           </Pressable>
         ) : null}
       </View>

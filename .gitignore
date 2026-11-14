@@ -31,6 +31,8 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.local
 .env*.local
 
 # typescript
@@ -41,3 +43,37 @@ example
 # generated native folders
 /ios
 /android
+
+# bitácora interna de trabajo, no es parte del entregable
+RESEARCH.md
+PENDIENTES.md
+COMANDOS.md
+CONSULTAS-PRD.md
+
+# IDE
+.idea/
+
+# documentos personales / entregables sueltos, no son parte del código
+*.pdf
+
+# material de teoría de la cátedra, no es parte de la app
+docs/
+
+# capturas de pantalla sueltas en la raíz
+/*.png
+/*.jpeg
+/*.jpg
+
+# postgres local para levantar la api de la cátedra, no es parte de la app
+docker-compose.yml
+db/
+
+# scripts personales de prueba (bash, python), no son parte de la app
+/scripts_bash_python/
+
+# Firebase (push en Android): se pasa por privado o va como variable de EAS
+google-services.json
+
+# notas personales
+endpoints_api.md
+endpoints_api_whatsapp.txt
